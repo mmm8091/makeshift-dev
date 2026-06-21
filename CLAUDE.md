@@ -2,6 +2,13 @@
 
 This repository is shared by the human team, Codex, Claude, and future agents.
 
+> **Claude Code self-reminder (tool calls):** every tool invocation MUST use the
+> namespaced tags `antml:invoke` and `antml:parameter`. Writing bare `<invoke>` /
+> `<parameter>` (dropping the `antml:` prefix) makes the call unparseable
+> ("malformed") and it silently fails. This tends to slip on quick calls right
+> after prose — double-check the prefix before sending. (Note for non-Claude
+> readers: this line is harness-specific and can be ignored.)
+
 ## Agent skills
 
 ### Issue tracker
