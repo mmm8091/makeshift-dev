@@ -1,4 +1,6 @@
 import { betterAuth } from "better-auth";
+import { getDb } from "@/db/client";
+import { profiles } from "@/db/schema";
 import { SITE } from "@/lib/site";
 
 export function createAuth(env: CloudflareEnv) {
@@ -21,6 +23,21 @@ export function createAuth(env: CloudflareEnv) {
       enabled: true,
     },
     socialProviders: github,
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            await getDb(env)
+              .insert(profiles)
+              .values({
+                userId: user.id,
+                displayName: user.name,
+              })
+              .onConflictDoNothing();
+          },
+        },
+      },
+    },
     advanced: {
       ipAddress: {
         ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],

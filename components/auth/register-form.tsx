@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { Field, OrDivider } from "@/components/auth-card";
 import { GitHubIcon } from "@/components/icons";
+import { authClient } from "@/lib/auth-client";
 
 export function RegisterForm() {
   const [notice, setNotice] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const [isGitHubPending, setIsGitHubPending] = useState(false);
   const pending = () => setNotice("账号系统正在接入（Better Auth），敬请期待");
 
   // 发送验证码后的倒计时重发
@@ -20,6 +22,19 @@ export function RegisterForm() {
     if (cooldown > 0) return;
     setCooldown(60);
     setNotice("邮箱验证码发送正在接入（Better Auth 邮箱验证），敬请期待");
+  };
+
+  const signInWithGitHub = async () => {
+    setIsGitHubPending(true);
+    setNotice("");
+    const { error } = await authClient.signIn.social({
+      provider: "github",
+      callbackURL: "/courses/enroll",
+    });
+    if (error) {
+      setNotice(error.message || "GitHub 注册暂时失败，请稍后再试");
+      setIsGitHubPending(false);
+    }
   };
 
   return (
@@ -99,10 +114,12 @@ export function RegisterForm() {
 
       <button
         type="button"
-        onClick={pending}
+        onClick={signInWithGitHub}
+        disabled={isGitHubPending}
         className="flex w-full items-center justify-center gap-2 border-2 border-ink bg-paper px-6 py-3 font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
       >
-        <GitHubIcon className="h-5 w-5" /> 用 GitHub 注册
+        <GitHubIcon className="h-5 w-5" />{" "}
+        {isGitHubPending ? "正在前往 GitHub" : "用 GitHub 注册"}
       </button>
 
       {notice && (
