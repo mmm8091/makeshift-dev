@@ -33,7 +33,7 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/courses/enroll");
+      router.push("/me");
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -47,7 +47,7 @@ export function LoginForm() {
     setNotice("");
     const { error } = await authClient.signIn.social({
       provider: "github",
-      callbackURL: "/courses/enroll",
+      callbackURL: "/me",
     });
     if (error) {
       setNotice(error.message || "GitHub 登录暂时失败，请稍后再试");

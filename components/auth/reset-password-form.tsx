@@ -73,7 +73,7 @@ export function ResetPasswordForm() {
         return;
       }
 
-      router.push("/courses/enroll");
+      router.push("/me");
       router.refresh();
     } catch (error) {
       console.error(error);

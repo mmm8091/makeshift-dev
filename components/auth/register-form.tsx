@@ -120,7 +120,7 @@ export function RegisterForm() {
         return;
       }
 
-      router.push("/courses/enroll");
+      router.push("/me");
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -135,7 +135,7 @@ export function RegisterForm() {
     setNotice("");
     const { error } = await authClient.signIn.social({
       provider: "github",
-      callbackURL: "/courses/enroll",
+      callbackURL: "/me",
     });
     if (error) {
       setNotice(error.message || "GitHub 注册暂时失败，请稍后再试");
