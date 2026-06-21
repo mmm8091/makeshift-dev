@@ -28,6 +28,7 @@ export function createAuth(env: CloudflareEnv) {
     },
     emailVerification: {
       autoSignInAfterVerification: false,
+      sendOnSignUp: false,
     },
     socialProviders: github,
     plugins: [

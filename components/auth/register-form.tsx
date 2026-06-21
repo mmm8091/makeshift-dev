@@ -68,6 +68,18 @@ export function RegisterForm() {
         return;
       }
 
+      const otpResult = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "email-verification",
+      });
+
+      if (otpResult.error) {
+        setNotice(otpResult.error.message || "账号已创建，但验证码发送失败");
+        setVerification({ email, password });
+        setIsEmailPending(false);
+        return;
+      }
+
       setVerification({ email, password });
       setCooldown(60);
       setNotice("验证码已发送，请查看邮箱后完成注册");
