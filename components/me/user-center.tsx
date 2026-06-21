@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QQAvatar } from "@/components/qq-avatar";
 import { authClient } from "@/lib/auth-client";
@@ -254,6 +255,24 @@ export function UserCenter({
               )}
             </div>
           </section>
+
+          {profile.role === "admin" && (
+            <section className="border-2 border-edge bg-paper-2 p-6">
+              <p className="font-serif text-sm font-bold text-red">管理</p>
+              <h2 className="mt-2 font-display text-2xl font-black">
+                卡密发放
+              </h2>
+              <p className="mt-3 font-serif text-sm text-ink-soft">
+                生成卡密后明文只显示一次，发给学员前先保存到你自己的私密记录里。
+              </p>
+              <Link
+                href="/admin/redeem-codes"
+                className="mt-5 inline-flex w-full items-center justify-center border-2 border-ink bg-paper px-5 py-3 font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
+              >
+                进入卡密管理
+              </Link>
+            </section>
+          )}
         </aside>
       </div>
     </div>
