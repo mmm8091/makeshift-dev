@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Field, OrDivider } from "@/components/auth-card";
 import { GitHubIcon } from "@/components/icons";
@@ -73,6 +74,11 @@ export function LoginForm() {
           placeholder="••••••••"
           required
         />
+        <div className="-mt-2 text-right font-serif text-sm text-ink-soft">
+          <Link href="/reset-password" className="font-bold text-red">
+            忘记密码？
+          </Link>
+        </div>
         <button
           type="submit"
           disabled={isEmailPending}
