@@ -1,49 +1,147 @@
-# 后端待接清单（交班给 Codex）
+# 后端交接状态
 
-前端已搭好首页、课程阅读页、登录/注册壳；以下是等后端接线的部分。
-技术细节见 `docs/草台编子识字班产品技术方案.md`，前端约定见 `docs/agents/frontend.md`，内容边界见 `docs/agents/collaboration.md`。
+更新时间：2026-06-22
 
-> 现状：当前仓库是纯前端（Next.js App Router）+ 少量 Node 服务端路由。
-> 还**没有**接 Cloudflare 适配、D1、Drizzle、Better Auth —— 这些是这次交班的主要工作。
+这份文档记录当前后端、部署和权限系统的实际落地状态。更长期的架构决策见 `docs/adr/`，前端约定见 `docs/agents/frontend.md`，产品边界见 `CONTEXT.md` 和 `docs/草台编子识字班产品技术方案.md`。
 
-## 技术栈（已定）
+## 当前生产入口
 
-Next.js on Cloudflare Workers（`@opennextjs/cloudflare`）、Cloudflare D1、Drizzle ORM、Better Auth。
+- 生产站点：`https://makeshift-dev.digitalleft.org`
+- Cloudflare Worker：`makeshift-dev`
+- D1 database：`makeshift-dev`
+- D1 binding：`DB`
+- 自动部署：`.github/workflows/deploy-cloudflare.yml`
 
-## 1. 账号系统（Better Auth）
+`main` 分支 push 后会在 GitHub Actions 中执行：
 
-- 前端壳：`app/login/`、`app/register/`；表单组件在 `components/auth/`（`login-form.tsx`、`register-form.tsx`）。
-- 登录：邮箱 + 密码 / GitHub OAuth。
-- 注册字段：昵称、邮箱、**邮箱验证码**、密码、QQ 号（选填）。**注册不收 GitHub 用户名**。
-- 表单当前 `onSubmit` 只弹"接入中"提示、"发送验证码"只走前端 60s 倒计时——等你接：
-  - Better Auth 邮箱验证码（发送 + 校验）、密码注册/登录、GitHub OAuth、session。
-- `profiles` 表建议：`display_name`、`qq_number`、`bio`、`role`。
-  （方案里原有 `github_username`，现在注册不收了，是否保留/改为 OAuth 自动带入由你定。）
+1. `pnpm typecheck`
+2. `pnpm db:migrate:remote`
+3. `pnpm run deploy`
 
-## 2. 卡密 / 权限
+Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。非敏感运行时变量在 `wrangler.jsonc`。
 
-- 报名文章路由 `/courses/enroll`（正文 `content/courses/enroll.md` 待写）；章节栏里锁住的文章都跳这里。
-- 待建：卡密兑换接口（**D1 原子条件更新防并发超发**，SQL 见方案「卡密系统」节）、`redeem_codes` / `redeem_code_uses` / `entitlements` 表、`/redeem` 页。
+## 已完成
 
-## 3. 付费课程正文（防泄漏是重点）
+### 账号与会话
 
-- 公开正文：仓库内 `content/courses/{slug}.md`。
-- 付费正文：存 D1。**接入点是 `lib/content.ts` 的 seam** —— 在那里加一条分支：校验 session + entitlement → 从 D1 读 `body_md`；未解锁返回 `null`。
-- 阅读页 `app/courses/[slug]/page.tsx` 已按"可读 = `public && available`"渲染，未解锁自动走 `Gate`（不渲染正文）。付费课接 D1 时，把"可读判定 + 正文来源"换成鉴权后的结果即可，UI 不用动。
-- 文章清单在 `lib/courses.ts`（`COURSES` / `ARTICLES`）。
+- Better Auth 已接入 Cloudflare Workers + D1。
+- 邮箱注册：邮箱 + 密码 + 邮箱验证码。
+- 邮箱登录：邮箱 + 密码；未验证邮箱不允许登录。
+- 找回/更新密码：邮箱验证码 + 新密码。
+- GitHub OAuth 已接入；OAuth 回调地址应保持为：
 
-## 4. 已就绪（无需后端改动）
+```txt
+https://makeshift-dev.digitalleft.org/api/auth/callback/github
+```
 
-- QQ 头像代理：`app/api/avatar/qq/[qq]/route.ts`（无状态，直接用）。
-- 学员墙数据：`data/students.json`（裸数组 `{qq, displayName}`，学员通过 PR 添加）、`data/team.json`。
+主要文件：
 
-## 5. 部署
+- `lib/auth.ts`
+- `lib/auth-client.ts`
+- `app/api/auth/[...all]/route.ts`
+- `components/auth/`
 
-- 目标 Cloudflare Workers + D1。需接 `@opennextjs/cloudflare`、`wrangler`、`drizzle-kit` 与迁移脚本（方案「部署流水线」节有 scripts 建议）。
-- 环境变量见方案（`BETTER_AUTH_*`、`GITHUB_CLIENT_*`、`CLOUDFLARE_*`、`D1_DATABASE_ID`）。
+### 邮件验证码
 
-## 必守边界
+- 邮件服务商：阿里云邮件推送 DirectMail。
+- 发信域名：`mail.digitalleft.org`
+- 发信地址：`noreply@mail.digitalleft.org`
+- Worker 通过 DirectMail OpenAPI 发验证码邮件，不使用 SMTP。
+- DKIM、SPF、DMARC、MX 已在 Cloudflare DNS 配置并通过阿里云验证。
 
-- 付费正文 / 受限论坛内容**不进公开仓库、不进前端 bundle、不进构建产物**；只能服务端鉴权后从 D1 读。
-- 卡密只存 hash，不存明文。
-- 兑换 / 注册 / 发帖接口要限流；Markdown 渲染要做 XSS 防护（付费正文从 D1 来，比仓库内的可信内容更需要）。
+主要文件：
+
+- `lib/email/directmail.ts`
+- `lib/email/auth-email.ts`
+- `docs/adr/2026-06-21-directmail-email-otp-auth.md`
+
+### 用户资料与用户中心
+
+- `/me` 已上线。
+- 登录成功后跳转 `/me`。
+- 用户可编辑昵称、QQ 号、简介。
+- QQ 头像优先，其次 GitHub image，最后显示昵称首字。
+- `admin` 用户会在用户中心看到卡密管理入口。
+
+主要文件：
+
+- `app/me/page.tsx`
+- `app/api/me/route.ts`
+- `components/me/user-center.tsx`
+- `app/api/avatar/qq/[qq]/route.ts`
+
+### 卡密与权益
+
+- 卡密只存 peppered hash，不存明文。
+- 管理员可在 `/admin/redeem-codes` 生成卡密。
+- 明文卡密只在生成后的浏览器页面显示一次。
+- 用户可在 `/me` 兑换卡密。
+- 兑换成功会写入 `entitlements`，当前正式 scope 为 `course:full`。
+- 兑换接口使用条件 `UPDATE` 抢占使用次数，并有唯一索引防止同一用户重复兑换同一张卡。
+
+主要文件：
+
+- `lib/redeem-codes.ts`
+- `app/api/admin/redeem-codes/route.ts`
+- `app/admin/redeem-codes/page.tsx`
+- `components/admin/redeem-code-admin.tsx`
+- `app/api/redeem/route.ts`
+- `drizzle/migrations/0001_numerous_warbird.sql`
+
+生产已人工验证：管理员生成卡密后，用户兑换显示 `已解锁：course:full`。
+
+### 管理员账号
+
+当前生产 D1 里只有 owner 的一个真实账号，并已设置为 `profiles.role = 'admin'`。不要把真实邮箱、用户 ID 或卡密明文写进仓库文档。
+
+如果以后需要再次检查：
+
+```powershell
+pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,emailVerified from user; select display_name,role from profiles;"
+```
+
+## 仍未完成
+
+- 付费课程正文从 D1 读取还没接到 `lib/content.ts`。
+- `/courses/**` 目前仍按公开 Markdown 和前端 gate 展示；正式付费正文不得进入 `content/courses/`。
+- 论坛还未实现。
+- 兑换、注册、登录、发信接口需要更细的限流和机器人防护。
+- 管理后台目前只有生成卡密，没有卡密批次列表、禁用、使用记录查询。
+- DirectMail 发送成功/失败日志现在用于上线排障，后续可收敛成更少的结构化日志。
+- GitHub Actions 有 Node 20 deprecation annotation，当前 workflow 已用 Node 22，后续如 action 仍提示，可升级相关 action 版本。
+
+## 下一步建议
+
+优先级从高到低：
+
+1. 给课程读取层接 D1 付费正文：从 `lib/content.ts` 开始，服务端检查 session + `entitlements.scope` 后读取 `course_sections.body_md`。
+2. 补管理员卡密列表：按 `batch_id`、`scope`、使用次数、过期时间展示，支持禁用未发出的批次。
+3. 增加基础限流：至少覆盖注册、验证码发送、登录、卡密兑换、管理员生成卡密。
+4. 做论坛最小闭环：列表、发帖、回帖、entitlement 保护。
+
+## 验证命令
+
+本地常用：
+
+```powershell
+pnpm typecheck
+pnpm build
+```
+
+远端部署状态：
+
+```powershell
+gh run list --repo mmm8091/makeshift-dev --limit 3
+```
+
+远端 D1：
+
+```powershell
+pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from user;"
+```
+
+## 交接提醒
+
+- 不要提交付费课程正文、论坛私密内容、卡密明文、Cloudflare/阿里云/GitHub secrets、数据库导出。
+- Codex 写的提交使用 `Codex <codex@openai.com>` 作为 author。
+- 学员 PR 是课程现场的一部分，审核时保持具体、友好、可执行。
