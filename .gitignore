@@ -12,6 +12,7 @@ dist/
 build/
 .vercel/
 .wrangler/
+.open-next/
 
 # Environment
 .env

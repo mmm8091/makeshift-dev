@@ -6,12 +6,22 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply makeshift-dev --local",
+    "db:migrate:remote": "wrangler d1 migrations apply makeshift-dev --remote",
+    "db:migrations:list": "wrangler d1 migrations list makeshift-dev"
   },
   "dependencies": {
+    "better-auth": "^1.6.20",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
     "next": "^15.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -21,14 +31,18 @@
     "tailwind-merge": "^3.0.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260621.1",
+    "@opennextjs/cloudflare": "^1.19.11",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^22.13.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "drizzle-kit": "^0.31.10",
     "postcss": "^8.5.0",
     "sharp": "^0.35.2",
     "tailwindcss": "^4.1.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "wrangler": "^4.103.0"
   },
   "packageManager": "pnpm@10.13.1"
 }
