@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `redeem_code_uses_code_user_unique` ON `redeem_code_uses` (`redeem_code_id`,`user_id`);

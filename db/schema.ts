@@ -158,6 +158,10 @@ export const redeemCodeUses = sqliteTable(
     userAgentHash: text("user_agent_hash"),
   },
   (table) => [
+    uniqueIndex("redeem_code_uses_code_user_unique").on(
+      table.redeemCodeId,
+      table.userId,
+    ),
     index("redeem_code_uses_code_id_idx").on(table.redeemCodeId),
     index("redeem_code_uses_user_id_idx").on(table.userId),
   ],
