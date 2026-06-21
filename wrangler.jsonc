@@ -12,6 +12,16 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "routes": [
+    {
+      "pattern": "digitalleft.org",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.digitalleft.org",
+      "custom_domain": true
+    }
+  ],
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
@@ -28,6 +38,6 @@
   ],
   "vars": {
     "NEXTJS_ENV": "production",
-    "BETTER_AUTH_URL": "https://makeshift-dev.leelooloo8091.workers.dev"
+    "BETTER_AUTH_URL": "https://digitalleft.org"
   }
 }
