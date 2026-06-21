@@ -27,6 +27,7 @@
     }
   ],
   "vars": {
-    "NEXTJS_ENV": "production"
+    "NEXTJS_ENV": "production",
+    "BETTER_AUTH_URL": "https://makeshift-dev.leelooloo8091.workers.dev"
   }
 }
