@@ -70,6 +70,22 @@ https://makeshift-dev.digitalleft.org/api/auth/callback/github
 - `components/me/user-center.tsx`
 - `app/api/avatar/qq/[qq]/route.ts`
 
+### 前端打磨（用户中心 + 顶栏登录态）
+
+在基础版上对用户中心 `/me` 做了体验与视觉打磨，接口未改：
+
+- 资料表单：成功/失败提示分色 + `aria-live`，QQ 号实时头像预览，简介计字，改动才可保存并加客户端校验（昵称 1–40 / QQ 5–12 位 / 简介 ≤160），兑换成功清空输入。
+- 视觉（均在暖纸墨绿木刻系统内）：标题错位套印 `.misprint`，邮箱与课程权限状态着色，已解锁加金色勋记（首次启用 `--color-gold`），侧栏三张卡卡头统一为眉标 + 大标题，头像加硬投影做盖章，阴影层级收成「主操作 6px / 次级扁平」两层。
+- 权益 scope 显示人话标签（`course:full` → 全部课程），下方保留原 scope 小字。
+
+顶栏登录态入口：登录后右上角显示「用户中心」（→ `/me`），未登录显示「登录」。**刻意走客户端 `useSession` 而非服务端读 session**，以保留首页 / 课程页的静态与 SSG。
+
+主要文件：
+
+- `components/me/user-center.tsx`
+- `components/header-auth.tsx`
+- `components/site-header.tsx`
+
 ### 卡密与权益
 
 - 卡密只存 peppered hash，不存明文。
@@ -105,6 +121,7 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 - 付费课程正文从 D1 读取还没接到 `lib/content.ts`。
 - `/courses/**` 目前仍按公开 Markdown 和前端 gate 展示；正式付费正文不得进入 `content/courses/`。
 - 论坛还未实现。
+- 前端缺口：顶栏「论坛」指向 `/forum` 但路由未实现（点击 404）；首页 / 顶栏 / 课程 Gate 都指向 `/courses/enroll`，但报名正文未写（`ENROLL.available=false`，点进去是「待上传」占位）；课程介绍页（非文章 landing）仍待做。
 - 兑换、注册、登录、发信接口需要更细的限流和机器人防护。
 - 管理后台目前只有生成卡密，没有卡密批次列表、禁用、使用记录查询。
 - DirectMail 发送成功/失败日志现在用于上线排障，后续可收敛成更少的结构化日志。

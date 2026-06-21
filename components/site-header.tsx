@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { GitHubIcon } from "@/components/icons";
+import { HeaderAuth } from "@/components/header-auth";
 import { SITE } from "@/lib/site";
 
 const NAV = [
@@ -47,12 +48,7 @@ export function SiteHeader() {
           </a>
         </nav>
 
-        <Link
-          href="/login"
-          className="ml-auto sm:ml-0 inline-flex items-center border-2 border-ink bg-ink px-4 py-1.5 text-sm font-bold text-paper transition-colors hover:bg-red hover:border-red"
-        >
-          登录
-        </Link>
+        <HeaderAuth />
       </div>
     </header>
   );
