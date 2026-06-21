@@ -31,7 +31,7 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link
-            href="/enroll"
+            href="/courses/enroll"
             className="font-bold text-red transition-colors hover:text-red-deep"
           >
             如何报名

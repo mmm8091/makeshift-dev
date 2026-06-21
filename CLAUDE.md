@@ -25,6 +25,7 @@ Before changing the product, architecture, course content model, or design syste
 3. `docs/agents/issue-tracker.md`
 4. `docs/agents/triage-labels.md`
 5. `docs/agents/collaboration.md`
+6. `docs/agents/frontend.md`（前端与内容的已落地约定）
 
 Important project documents:
 

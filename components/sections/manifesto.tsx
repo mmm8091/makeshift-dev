@@ -20,7 +20,7 @@ export function Manifesto() {
       {/* 背景插画压暗 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/illustrations/lode.png"
+        src="/illustrations/lode.webp"
         alt=""
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-25"

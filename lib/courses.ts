@@ -35,3 +35,45 @@ export const COURSES: CourseEntry[] = [
   { order: 4, title: "待上传", summary: "", public: false, available: false },
   { order: 5, title: "待上传", summary: "", public: false, available: false },
 ];
+
+/**
+ * 报名文章。
+ *
+ * 在本站，「课程」其实就是文章系统：报名页本身也是一篇文章，归在课程里、排在最前。
+ * 章节栏里点到「锁住」的文章时，统一跳到这里。
+ * 正文待补充（available=false）；写好后放 content/courses/enroll.md 并置 available=true。
+ */
+export const ENROLL: CourseEntry = {
+  order: -1,
+  slug: "enroll",
+  title: "如何报名",
+  summary: "卡密兑换、加入方式与课程权限说明",
+  public: true,
+  available: false,
+};
+
+/**
+ * 文章系统的完整有序列表（报名在最前，其后是课程路径）。
+ * 用于阅读页路由与章节栏；首页「课程路径」预览仍只用 COURSES，不含报名。
+ */
+export const ARTICLES: CourseEntry[] = [ENROLL, ...COURSES];
+
+/** 按 slug 取文章元数据（含报名）。 */
+export function getCourse(slug: string): CourseEntry | undefined {
+  return ARTICLES.find((c) => c.slug === slug);
+}
+
+/** 取相邻可阅读文章（跳过没有 slug 的待上传占位），用于文末上一篇/下一篇。 */
+export function getAdjacentArticles(slug: string): {
+  prev?: CourseEntry;
+  next?: CourseEntry;
+} {
+  const i = ARTICLES.findIndex((c) => c.slug === slug);
+  if (i < 0) return {};
+  const prev = [...ARTICLES.slice(0, i)].reverse().find((c) => c.slug);
+  const next = ARTICLES.slice(i + 1).find((c) => c.slug);
+  return { prev, next };
+}
+
+/** 报名文章的阅读路径，章节栏中锁住的文章都跳这里。 */
+export const ENROLL_HREF = "/courses/enroll";

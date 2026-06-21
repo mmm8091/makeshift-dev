@@ -75,7 +75,7 @@ export function StudentWall() {
                 ))}
                 <li>
                   <Link
-                    href="/enroll"
+                    href="/courses/enroll"
                     aria-label="把自己加进学员墙"
                     className="flex aspect-square items-center justify-center border-2 border-dashed border-red bg-paper font-display text-2xl font-black text-red transition-colors hover:bg-red hover:text-paper"
                   >
@@ -89,7 +89,7 @@ export function StudentWall() {
 
         <div className="mt-8">
           <Link
-            href="/enroll"
+            href="/courses/enroll"
             className="inline-flex items-center border-2 border-ink bg-transparent px-5 py-2.5 font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
           >
             如何把自己加进来 →

@@ -26,7 +26,7 @@ export function Hero() {
               先读前言 →
             </Link>
             <Link
-              href="/enroll"
+              href="/courses/enroll"
               className="inline-flex items-center border-2 border-ink bg-transparent px-6 py-3 font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
             >
               如何报名
@@ -38,7 +38,7 @@ export function Hero() {
         <figure className="print-block relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/illustrations/hero-home.png"
+            src="/illustrations/hero-home.webp"
             alt="工人版画：草台帐篷下的夜校，暖灯里几桌人在敲键盘，中央一株发光的野草长成电路"
             className="aspect-video w-full object-cover"
           />
