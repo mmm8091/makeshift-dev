@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth";
+import { emailOTP } from "better-auth/plugins/email-otp";
 import { getDb } from "@/db/client";
 import { profiles } from "@/db/schema";
+import { sendAuthOTPEmail } from "@/lib/email/auth-email";
 import { SITE } from "@/lib/site";
 
 export function createAuth(env: CloudflareEnv) {
@@ -21,8 +23,30 @@ export function createAuth(env: CloudflareEnv) {
     baseURL: env.BETTER_AUTH_URL,
     emailAndPassword: {
       enabled: true,
+      requireEmailVerification: true,
+      revokeSessionsOnPasswordReset: true,
+    },
+    emailVerification: {
+      autoSignInAfterVerification: true,
     },
     socialProviders: github,
+    plugins: [
+      emailOTP({
+        otpLength: 6,
+        expiresIn: 600,
+        allowedAttempts: 3,
+        storeOTP: "encrypted",
+        resendStrategy: "reuse",
+        overrideDefaultEmailVerification: true,
+        rateLimit: {
+          window: 60,
+          max: 3,
+        },
+        sendVerificationOTP: async (data) => {
+          await sendAuthOTPEmail(env, data);
+        },
+      }),
+    ],
     databaseHooks: {
       user: {
         create: {
