@@ -21,7 +21,7 @@
     {
       "binding": "DB",
       "database_name": "makeshift-dev",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "98facb7b-4bd7-4630-9dab-f10e64d87c0f",
       "migrations_dir": "drizzle/migrations"
     }
   ],
