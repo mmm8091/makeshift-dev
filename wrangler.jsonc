@@ -14,11 +14,7 @@
   },
   "routes": [
     {
-      "pattern": "digitalleft.org",
-      "custom_domain": true
-    },
-    {
-      "pattern": "www.digitalleft.org",
+      "pattern": "makeshift-dev.digitalleft.org",
       "custom_domain": true
     }
   ],
@@ -38,6 +34,6 @@
   ],
   "vars": {
     "NEXTJS_ENV": "production",
-    "BETTER_AUTH_URL": "https://digitalleft.org"
+    "BETTER_AUTH_URL": "https://makeshift-dev.digitalleft.org"
   }
 }
