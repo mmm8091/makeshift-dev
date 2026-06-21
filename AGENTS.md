@@ -38,4 +38,4 @@ Working rules:
 - Preserve the project's plain, grassroots, worker-education tone.
 - Prefer small, reviewable changes that leave a clear trail in docs or ADRs when decisions matter.
 - Do not overwrite work from another agent or human without first understanding it.
-
+- Codex-authored commits should use `Codex <codex@openai.com>` as the git author; do not change the repository's default author for human or other-agent commits.
