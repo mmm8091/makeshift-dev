@@ -9,4 +9,5 @@ interface CloudflareEnv {
   ALIYUN_DIRECTMAIL_FROM_ALIAS?: string;
   ALIYUN_DIRECTMAIL_REGION_ID?: string;
   ALIYUN_DIRECTMAIL_ENDPOINT?: string;
+  REDEEM_CODE_PEPPER?: string;
 }
