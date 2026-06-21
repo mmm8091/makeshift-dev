@@ -16,6 +16,10 @@
     {
       "pattern": "makeshift-dev.digitalleft.org",
       "custom_domain": true
+    },
+    {
+      "pattern": "digitalleft.org",
+      "custom_domain": true
     }
   ],
   "services": [
