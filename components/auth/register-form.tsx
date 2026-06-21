@@ -29,16 +29,22 @@ export function RegisterForm() {
     if (!verification) return;
     setNotice("");
     setCooldown(60);
-    const { error } = await authClient.emailOtp.sendVerificationOtp({
-      email: verification.email,
-      type: "email-verification",
-    });
-    if (error) {
-      setNotice(error.message || "验证码重发失败，请稍后再试");
+    try {
+      const { error } = await authClient.emailOtp.sendVerificationOtp({
+        email: verification.email,
+        type: "email-verification",
+      });
+      if (error) {
+        setNotice(error.message || "验证码重发失败，请稍后再试");
+        setCooldown(0);
+        return;
+      }
+      setNotice("验证码已重新发送，请查看邮箱");
+    } catch (error) {
+      console.error(error);
+      setNotice("验证码重发请求没有完成，请检查网络后再试");
       setCooldown(0);
-      return;
     }
-    setNotice("验证码已重新发送，请查看邮箱");
   };
 
   const registerWithEmail = async (formData: FormData) => {
@@ -49,22 +55,28 @@ export function RegisterForm() {
     setIsEmailPending(true);
     setNotice("");
 
-    const { error } = await authClient.signUp.email({
-      name,
-      email,
-      password,
-    });
+    try {
+      const { error } = await authClient.signUp.email({
+        name,
+        email,
+        password,
+      });
 
-    if (error) {
-      setNotice(error.message || "注册失败，请稍后再试");
+      if (error) {
+        setNotice(error.message || "注册失败，请稍后再试");
+        setIsEmailPending(false);
+        return;
+      }
+
+      setVerification({ email, password });
+      setCooldown(60);
+      setNotice("验证码已发送，请查看邮箱后完成注册");
+    } catch (error) {
+      console.error(error);
+      setNotice("注册请求没有完成，请检查网络后再试");
+    } finally {
       setIsEmailPending(false);
-      return;
     }
-
-    setVerification({ email, password });
-    setCooldown(60);
-    setNotice("验证码已发送，请查看邮箱后完成注册");
-    setIsEmailPending(false);
   };
 
   const verifyEmail = async (formData: FormData) => {
@@ -73,32 +85,37 @@ export function RegisterForm() {
     setIsEmailPending(true);
     setNotice("");
 
-    const verificationResult = await authClient.emailOtp.verifyEmail({
-      email: verification.email,
-      otp,
-    });
+    try {
+      const verificationResult = await authClient.emailOtp.verifyEmail({
+        email: verification.email,
+        otp,
+      });
 
-    if (verificationResult.error) {
-      setNotice(verificationResult.error.message || "验证码无效或已过期");
+      if (verificationResult.error) {
+        setNotice(verificationResult.error.message || "验证码无效或已过期");
+        return;
+      }
+
+      const signInResult = await authClient.signIn.email({
+        email: verification.email,
+        password: verification.password,
+      });
+
+      if (signInResult.error) {
+        setNotice(
+          signInResult.error.message || "邮箱已验证，请回到登录页输入密码登录",
+        );
+        return;
+      }
+
+      router.push("/courses/enroll");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setNotice("验证码校验请求没有完成，请检查网络后再试");
+    } finally {
       setIsEmailPending(false);
-      return;
     }
-
-    const signInResult = await authClient.signIn.email({
-      email: verification.email,
-      password: verification.password,
-    });
-
-    if (signInResult.error) {
-      setNotice(
-        signInResult.error.message || "邮箱已验证，请回到登录页输入密码登录",
-      );
-      setIsEmailPending(false);
-      return;
-    }
-
-    router.push("/courses/enroll");
-    router.refresh();
   };
 
   const signInWithGitHub = async () => {

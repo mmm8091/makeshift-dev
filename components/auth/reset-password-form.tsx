@@ -23,20 +23,26 @@ export function ResetPasswordForm() {
     setIsPending(true);
     setNotice("");
 
-    const { error } = await authClient.emailOtp.requestPasswordReset({
-      email: nextEmail,
-    });
+    try {
+      const { error } = await authClient.emailOtp.requestPasswordReset({
+        email: nextEmail,
+      });
 
-    if (error) {
-      setNotice(error.message || "验证码发送失败，请稍后再试");
+      if (error) {
+        setNotice(error.message || "验证码发送失败，请稍后再试");
+        setIsPending(false);
+        return;
+      }
+
+      setEmail(nextEmail);
+      setCooldown(60);
+      setNotice("验证码已发送，请查看邮箱");
+    } catch (error) {
+      console.error(error);
+      setNotice("验证码请求没有完成，请检查网络后再试");
+    } finally {
       setIsPending(false);
-      return;
     }
-
-    setEmail(nextEmail);
-    setCooldown(60);
-    setNotice("验证码已发送，请查看邮箱");
-    setIsPending(false);
   };
 
   const resetPassword = async (formData: FormData) => {
@@ -45,44 +51,55 @@ export function ResetPasswordForm() {
     setIsPending(true);
     setNotice("");
 
-    const resetResult = await authClient.emailOtp.resetPassword({
-      email,
-      otp,
-      password,
-    });
+    try {
+      const resetResult = await authClient.emailOtp.resetPassword({
+        email,
+        otp,
+        password,
+      });
 
-    if (resetResult.error) {
-      setNotice(resetResult.error.message || "验证码无效或已过期");
+      if (resetResult.error) {
+        setNotice(resetResult.error.message || "验证码无效或已过期");
+        return;
+      }
+
+      const signInResult = await authClient.signIn.email({
+        email,
+        password,
+      });
+
+      if (signInResult.error) {
+        setNotice("密码已更新，请回到登录页用新密码登录");
+        return;
+      }
+
+      router.push("/courses/enroll");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setNotice("密码更新请求没有完成，请检查网络后再试");
+    } finally {
       setIsPending(false);
-      return;
     }
-
-    const signInResult = await authClient.signIn.email({
-      email,
-      password,
-    });
-
-    if (signInResult.error) {
-      setNotice("密码已更新，请回到登录页用新密码登录");
-      setIsPending(false);
-      return;
-    }
-
-    router.push("/courses/enroll");
-    router.refresh();
   };
 
   const resend = async () => {
     if (!email || cooldown > 0) return;
     setCooldown(60);
     setNotice("");
-    const { error } = await authClient.emailOtp.requestPasswordReset({ email });
-    if (error) {
-      setNotice(error.message || "验证码重发失败，请稍后再试");
+    try {
+      const { error } = await authClient.emailOtp.requestPasswordReset({ email });
+      if (error) {
+        setNotice(error.message || "验证码重发失败，请稍后再试");
+        setCooldown(0);
+        return;
+      }
+      setNotice("验证码已重新发送，请查看邮箱");
+    } catch (error) {
+      console.error(error);
+      setNotice("验证码重发请求没有完成，请检查网络后再试");
       setCooldown(0);
-      return;
     }
-    setNotice("验证码已重新发送，请查看邮箱");
   };
 
   return (

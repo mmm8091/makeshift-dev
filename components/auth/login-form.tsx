@@ -19,21 +19,27 @@ export function LoginForm() {
     setIsEmailPending(true);
     setNotice("");
 
-    const { error } = await authClient.signIn.email({
-      email,
-      password,
-    });
+    try {
+      const { error } = await authClient.signIn.email({
+        email,
+        password,
+      });
 
-    if (error) {
-      setNotice(
-        error.message || "登录失败，请检查邮箱、密码，或确认邮箱已经验证",
-      );
+      if (error) {
+        setNotice(
+          error.message || "登录失败，请检查邮箱、密码，或确认邮箱已经验证",
+        );
+        setIsEmailPending(false);
+        return;
+      }
+
+      router.push("/courses/enroll");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setNotice("登录请求没有完成，请检查网络后再试");
       setIsEmailPending(false);
-      return;
     }
-
-    router.push("/courses/enroll");
-    router.refresh();
   };
 
   const signInWithGitHub = async () => {
