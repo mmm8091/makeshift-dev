@@ -76,6 +76,11 @@ export async function sendDirectMail(
       },
     );
   }
+
+  console.info("DirectMail send succeeded", {
+    requestId: payload.RequestId,
+    status: response.status,
+  });
 }
 
 function getDirectMailConfig(env: CloudflareEnv): DirectMailConfig {

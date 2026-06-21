@@ -31,12 +31,26 @@ export async function sendAuthOTPEmail(
     `<p>如果不是你本人操作，可以忽略这封邮件。</p>`,
   ].join("");
 
-  await sendDirectMail(env, {
-    to: data.email,
-    subject,
-    textBody,
-    htmlBody,
-  });
+  try {
+    await sendDirectMail(env, {
+      to: data.email,
+      subject,
+      textBody,
+      htmlBody,
+    });
+  } catch (error) {
+    console.error("Auth OTP email failed", {
+      type: data.type,
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+            }
+          : String(error),
+    });
+    throw error;
+  }
 }
 
 function getSubject(type: AuthEmailOTPType) {
