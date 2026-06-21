@@ -1,14 +1,40 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Field, OrDivider } from "@/components/auth-card";
 import { GitHubIcon } from "@/components/icons";
 import { authClient } from "@/lib/auth-client";
 
 export function LoginForm() {
+  const router = useRouter();
   const [notice, setNotice] = useState("");
+  const [isEmailPending, setIsEmailPending] = useState(false);
   const [isGitHubPending, setIsGitHubPending] = useState(false);
-  const pending = () => setNotice("账号系统正在接入（Better Auth），敬请期待");
+
+  const signInWithEmail = async (formData: FormData) => {
+    const email = String(formData.get("email") || "").trim().toLowerCase();
+    const password = String(formData.get("password") || "");
+    setIsEmailPending(true);
+    setNotice("");
+
+    const { error } = await authClient.signIn.email({
+      email,
+      password,
+    });
+
+    if (error) {
+      setNotice(
+        error.message || "登录失败，请检查邮箱、密码，或确认邮箱已经验证",
+      );
+      setIsEmailPending(false);
+      return;
+    }
+
+    router.push("/courses/enroll");
+    router.refresh();
+  };
+
   const signInWithGitHub = async () => {
     setIsGitHubPending(true);
     setNotice("");
@@ -27,7 +53,7 @@ export function LoginForm() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          pending();
+          void signInWithEmail(new FormData(e.currentTarget));
         }}
         className="space-y-4"
       >
@@ -49,9 +75,10 @@ export function LoginForm() {
         />
         <button
           type="submit"
+          disabled={isEmailPending}
           className="w-full border-2 border-ink bg-ink px-6 py-3 font-bold text-paper transition-colors hover:border-red hover:bg-red"
         >
-          登录
+          {isEmailPending ? "正在登录" : "登录"}
         </button>
       </form>
 

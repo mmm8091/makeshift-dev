@@ -27,7 +27,7 @@ export function createAuth(env: CloudflareEnv) {
       revokeSessionsOnPasswordReset: true,
     },
     emailVerification: {
-      autoSignInAfterVerification: true,
+      autoSignInAfterVerification: false,
     },
     socialProviders: github,
     plugins: [
