@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+/* =============================================================
+   草台编子识字班 — 设计 token（暖纸墨绿基调）
+   底色思路：logo 的米色纸 + 暗绿墨线，红色点缀；
+   重黑红木刻只出现在插画区与少数 deep 区块。
+   长文阅读用宋体（旧讲义感），标题用黑体（粗黑刻痕感）。
+   ============================================================= */
+@theme {
+  /* ---- 纸与墨 ---- */
+  --color-paper: #f7f0df; /* 主背景：米色纸 */
+  --color-paper-2: #f0e6cf; /* 次级纸面：卡片/分区 */
+  --color-paper-3: #e8dcc0; /* 更深纸面：内嵌块 */
+  --color-edge: #ddcfa9; /* 暖色描边/分隔线 */
+
+  --color-ink: #20352b; /* 正文主墨：暗绿炭黑 */
+  --color-ink-soft: #44544a; /* 次级文字 */
+  --color-ink-faint: #74786a; /* 弱化说明文字 */
+
+  /* ---- 点缀 ---- */
+  --color-red: #b3261e; /* 深红：情绪/警示/强调 */
+  --color-red-deep: #8a1812; /* 深红重色 */
+  --color-gold: #d7a83f; /* 金：节点/勋记 */
+  --color-teal: #39bfc9; /* 青：芯片点缀 */
+  --color-terminal: #3aa46a; /* 冷绿：终端微光，点睛勿铺满 */
+
+  /* ---- 深色木刻区（hero/插画底/未来阅读区） ---- */
+  --color-woodcut: #161210; /* 近黑暖底 */
+  --color-woodcut-2: #241d18; /* 木刻次级 */
+
+  /* ---- 字体 ---- */
+  --font-display:
+    "黑体", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "SimHei",
+    system-ui, sans-serif;
+  --font-serif:
+    "LXGW WenKai", var(--font-serif-sc), "Songti SC", "STSong", "宋体",
+    "SimSun", Georgia, serif;
+  --font-sans:
+    "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "Cascadia Code", "JetBrains Mono", "Consolas", ui-monospace, monospace;
+
+  /* ---- 圆角（克制，偏方正印刷块） ---- */
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-lg: 6px;
+}
+
+/* =============================================================
+   基础排版
+   ============================================================= */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.7;
+    /* 纸纹：极淡的颗粒，避免现代 SaaS 的纯净渐变感 */
+    background-image:
+      radial-gradient(
+        circle at 1px 1px,
+        rgba(32, 53, 43, 0.05) 1px,
+        transparent 0
+      );
+    background-size: 4px 4px;
+  }
+
+  ::selection {
+    background-color: var(--color-red);
+    color: var(--color-paper);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    /* 颜色继承容器：浅色区为墨绿，深色区（宣言带等）自动变纸色 */
+    color: inherit;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+/* =============================================================
+   组件级肌理（木刻/丝网印刷感）
+   ============================================================= */
+@layer components {
+  /* 硬投影印刷块：无模糊偏移阴影，像贴上去的版画 */
+  .print-block {
+    border: 2px solid var(--color-ink);
+    background-color: var(--color-paper-2);
+    box-shadow: 6px 6px 0 0 var(--color-ink);
+  }
+  .print-block-red {
+    box-shadow: 6px 6px 0 0 var(--color-red);
+  }
+
+  /* 粗黑分隔线 */
+  .rule-ink {
+    height: 3px;
+    background-color: var(--color-ink);
+  }
+
+  /* 误套色标题：红色轻微错位描边，模拟丝网印刷套色不准 */
+  .misprint {
+    text-shadow: 2px 2px 0 rgba(179, 38, 30, 0.28);
+  }
+
+  /* 章节眉标小标签：前导短横做版面凸显，颜色随 currentColor。
+     眉标改用衬线（霞鹜文楷）做手工讲义印记感。 */
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    font-family: var(--font-serif);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    font-size: 0.9375rem;
+    color: var(--color-red);
+  }
+  .kicker::before {
+    content: "";
+    width: 1.75em;
+    height: 2px;
+    background-color: currentColor;
+  }
+
+  /* 宋体长文容器（前言/课程正文用） */
+  .prose-letterpress {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    line-height: 2;
+    color: var(--color-ink);
+  }
+  .prose-letterpress p {
+    margin-block: 1.1em;
+  }
+
+  /* 霞鹜文楷无真粗体：用极细同色描边给衬线正文加一点墨重，解决"太瘦" */
+  .ink-bold {
+    -webkit-text-stroke: 0.3px currentColor;
+  }
+}

@@ -1,0 +1,14 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">Grass circuit mark B2 tech sprout</title>
+  <rect width="256" height="256" rx="40" fill="#F7F0DF"/>
+  <path d="M88 188C99 180 116 176 128 176C140 176 157 180 168 188C158 196 143 200 128 200C113 200 98 196 88 188Z" fill="#20352B"/>
+  <path d="M128 176V86" stroke="#20352B" stroke-width="13" stroke-linecap="round"/>
+  <path d="M128 143C113 135 103 124 96 110" stroke="#20352B" stroke-width="10" stroke-linecap="round"/>
+  <path d="M128 133C143 125 153 113 160 98" stroke="#20352B" stroke-width="10" stroke-linecap="round"/>
+  <path d="M128 86V60H155V45" stroke="#B3261E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M128 86H101V68" stroke="#B3261E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="101" cy="68" r="8" fill="#D7A83F"/>
+  <circle cx="155" cy="45" r="8" fill="#D7A83F"/>
+  <circle cx="128" cy="86" r="7" fill="#D7A83F"/>
+  <rect x="150" y="82" width="12" height="12" rx="3" fill="#39BFC9"/>
+</svg>
