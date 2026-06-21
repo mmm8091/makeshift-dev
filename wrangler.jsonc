@@ -38,6 +38,10 @@
   ],
   "vars": {
     "NEXTJS_ENV": "production",
-    "BETTER_AUTH_URL": "https://makeshift-dev.digitalleft.org"
+    "BETTER_AUTH_URL": "https://makeshift-dev.digitalleft.org",
+    "ALIYUN_DIRECTMAIL_ACCOUNT_NAME": "noreply@mail.digitalleft.org",
+    "ALIYUN_DIRECTMAIL_FROM_ALIAS": "草台编子识字班",
+    "ALIYUN_DIRECTMAIL_REGION_ID": "cn-hangzhou",
+    "ALIYUN_DIRECTMAIL_ENDPOINT": "https://dm.aliyuncs.com/"
   }
 }
