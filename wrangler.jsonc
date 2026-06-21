@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "makeshift-dev",
+  "account_id": "370c0a6a58a36a7e781de20d1a257ac2",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-06-21",
   "compatibility_flags": [
