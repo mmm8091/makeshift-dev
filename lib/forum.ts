@@ -360,14 +360,6 @@ export async function resolveViewer(args: ServiceArgs): Promise<Viewer | null> {
   if (!session) return null;
 
   const db = getDb(args.env);
-  await db
-    .insert(profiles)
-    .values({
-      userId: session.user.id,
-      displayName: session.user.name,
-    })
-    .onConflictDoNothing();
-
   const [profile] = await db
     .select({
       displayName: profiles.displayName,
@@ -401,7 +393,6 @@ export async function resolveViewer(args: ServiceArgs): Promise<Viewer | null> {
 
 export async function listTags(args: { env: CloudflareEnv }): Promise<Tag[]> {
   const db = getDb(args.env);
-  await ensureDefaultTags(db);
   const rows = await db
     .select({ slug: forumTags.slug, name: forumTags.name })
     .from(forumTags)
@@ -417,7 +408,6 @@ export async function listTagsForAdmin(
   if (viewer?.role !== "admin") return null;
 
   const db = getDb(args.env);
-  await ensureDefaultTags(db);
   const rows = await db
     .select({
       id: forumTags.id,
