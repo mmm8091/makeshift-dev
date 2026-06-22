@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  pickRandomQuote,
+  drawQuote,
   QUOTE_HANDOFF_KEY,
   QUOTE_STARTED_KEY,
   QUOTES_SOURCE_URL,
@@ -72,7 +72,7 @@ export function QuoteLoader() {
       setQuote(chosen.current);
       return;
     }
-    const q = pickRandomQuote();
+    const q = drawQuote();
     chosen.current = q;
     try {
       sessionStorage.setItem(QUOTE_HANDOFF_KEY, JSON.stringify(q));

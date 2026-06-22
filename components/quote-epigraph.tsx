@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  pickRandomQuote,
-  QUOTE_HANDOFF_KEY,
-  type Quote,
-} from "@/lib/quotes";
+import { drawQuote, QUOTE_HANDOFF_KEY, type Quote } from "@/lib/quotes";
 
 /**
  * 文章顶部题记：优先取回加载页暂存的那句骚话（取后即清，consume-once），
@@ -30,7 +26,7 @@ export function QuoteEpigraph() {
     } catch {
       // 忽略 sessionStorage 异常，退回随机。
     }
-    if (!q) q = pickRandomQuote();
+    if (!q) q = drawQuote();
     chosen.current = q;
     setQuote(q);
   }, []);
