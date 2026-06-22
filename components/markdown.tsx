@@ -16,7 +16,7 @@ const components: Components = {
     </h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mt-10 mb-3 font-display text-xl font-extrabold">
+    <h3 className="mt-12 mb-3 border-t-2 border-ink pt-8 font-display text-xl font-extrabold">
       {children}
     </h3>
   ),

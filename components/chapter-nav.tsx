@@ -21,6 +21,83 @@ function hrefOf(a: CourseEntry, state: ArticleState): string | null {
   return null;
 }
 
+function childArticlesOf(articles: CourseEntry[], parentSlug: string) {
+  return articles.filter((article) => article.parentSlug === parentSlug);
+}
+
+function topLevelArticles(articles: CourseEntry[]) {
+  return articles.filter((article) => !article.parentSlug);
+}
+
+function labelOf(a: CourseEntry) {
+  if (a.slug === "enroll") return a.title;
+  return a.available ? a.title : "待上传";
+}
+
+function NavRow({
+  article,
+  currentSlug,
+  index,
+  nested = false,
+  onSelect,
+}: {
+  article: CourseEntry;
+  currentSlug: string;
+  index?: number;
+  nested?: boolean;
+  onSelect: () => void;
+}) {
+  const state = stateOf(article, currentSlug);
+  const href = hrefOf(article, state);
+
+  const inner = (
+    <div
+      className={cn(
+        "flex items-center gap-3 border-2 px-3 py-2.5",
+        nested && "ml-8 border-l-red/60 py-2",
+        state === "current" ? "border-red bg-paper-2" : "border-transparent",
+        state === "coming" && "opacity-50",
+      )}
+    >
+      {!nested && index !== undefined && (
+        <span className="font-mono text-xs text-ink-faint">
+          {String(index).padStart(2, "0")}
+        </span>
+      )}
+      <span
+        className={cn(
+          "flex-1 font-serif text-[0.95rem] leading-snug",
+          nested && "text-[0.92rem]",
+          state === "current" ? "font-bold text-red" : "text-ink",
+        )}
+      >
+        {labelOf(article)}
+      </span>
+      {state === "locked" && (
+        <span aria-hidden className="text-sm text-ink-faint">
+          锁
+        </span>
+      )}
+    </div>
+  );
+
+  return (
+    <li key={article.slug ?? `${article.order}-${article.title}`}>
+      {href ? (
+        <Link
+          href={href}
+          onClick={onSelect}
+          className="block transition-colors hover:bg-paper-3"
+        >
+          {inner}
+        </Link>
+      ) : (
+        inner
+      )}
+    </li>
+  );
+}
+
 /** 章节栏：阅读时可展开，列出全部文章结构。后续可扩展母子层级。 */
 export function ChapterNav({
   articles,
@@ -67,57 +144,28 @@ export function ChapterNav({
             </div>
 
             <ol className="flex-1 overflow-y-auto p-3">
-              {articles.map((a, i) => {
-                const state = stateOf(a, currentSlug);
-                const href = hrefOf(a, state);
-                const label =
-                  a.slug === "enroll" ? a.title : a.available ? a.title : "待上传";
-
-                const inner = (
-                  <div
-                    className={cn(
-                      "flex items-center gap-3 border-2 px-3 py-2.5",
-                      state === "current"
-                        ? "border-red bg-paper-2"
-                        : "border-transparent",
-                      state === "coming" && "opacity-50",
-                    )}
-                  >
-                    <span className="font-mono text-xs text-ink-faint">
-                      {String(i).padStart(2, "0")}
-                    </span>
-                    <span
-                      className={cn(
-                        "flex-1 font-serif text-[0.95rem] leading-snug",
-                        state === "current" ? "font-bold text-red" : "text-ink",
-                      )}
-                    >
-                      {label}
-                    </span>
-                    {state === "locked" && (
-                      <span aria-hidden className="text-sm text-ink-faint">
-                        🔒
-                      </span>
-                    )}
-                  </div>
-                );
-
-                return (
-                  <li key={`${a.slug ?? "x"}-${i}`}>
-                    {href ? (
-                      <Link
-                        href={href}
-                        onClick={() => setOpen(false)}
-                        className="block transition-colors hover:bg-paper-3"
-                      >
-                        {inner}
-                      </Link>
-                    ) : (
-                      inner
-                    )}
-                  </li>
-                );
-              })}
+              {topLevelArticles(articles).map((article, index) => (
+                <li key={article.slug ?? `${article.order}-${article.title}`}>
+                  <ol>
+                    <NavRow
+                      article={article}
+                      currentSlug={currentSlug}
+                      index={index}
+                      onSelect={() => setOpen(false)}
+                    />
+                    {article.slug &&
+                      childArticlesOf(articles, article.slug).map((child) => (
+                        <NavRow
+                          key={child.slug}
+                          article={child}
+                          currentSlug={currentSlug}
+                          nested
+                          onSelect={() => setOpen(false)}
+                        />
+                      ))}
+                  </ol>
+                </li>
+              ))}
             </ol>
           </nav>
         </div>,

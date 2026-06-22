@@ -87,10 +87,7 @@ export default async function CoursePage({
       </div>
 
       <header className="mt-10">
-        <p className="kicker">
-          {course.order === 0 ? "前言" : `第 ${course.order} 课`}
-          {course.public ? " · 公开免费" : " · 报名解锁"}
-        </p>
+        <p className="kicker">{course.public ? "公开免费" : "报名解锁"}</p>
         <h1 className="misprint mt-3 font-display text-4xl font-black leading-tight sm:text-5xl">
           {course.title}
         </h1>

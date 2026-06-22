@@ -6,6 +6,7 @@ import { courseSections, entitlements } from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import {
   DEFAULT_COURSE_ENTITLEMENT,
+  inferParentSlugFromTitle,
   type CourseEntry,
 } from "@/lib/courses";
 
@@ -67,6 +68,7 @@ function toCourseEntry(
       row.visibility === "locked"
         ? row.requiredEntitlement || DEFAULT_COURSE_ENTITLEMENT
         : row.requiredEntitlement,
+    parentSlug: inferParentSlugFromTitle(row.title),
   };
 }
 

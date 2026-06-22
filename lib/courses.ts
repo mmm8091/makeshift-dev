@@ -21,6 +21,8 @@ export type CourseEntry = {
   source?: "repo" | "d1";
   /** 付费正文所需权益；D1 locked 课程未填时默认 course:full */
   requiredEntitlement?: string | null;
+  /** 章节抽屉里的父级文章；例如 1.1 挂在第一讲下 */
+  parentSlug?: string | null;
 };
 
 export const DEFAULT_COURSE_ENTITLEMENT = "course:full";
@@ -50,6 +52,17 @@ export const COURSES: CourseEntry[] = [
   { order: 4, title: "待上传", summary: "", public: false, available: false },
   { order: 5, title: "待上传", summary: "", public: false, available: false },
 ];
+
+const SUBSECTION_PARENT_BY_MAJOR: Record<string, string> = {
+  "1": "01-will",
+};
+
+/** 让 D1 小节按标题号自动挂到大讲下面，例如 1.1 -> 第一讲。 */
+export function inferParentSlugFromTitle(title: string): string | null {
+  const match = title.trim().match(/^(\d+)\.\d+/);
+  if (!match) return null;
+  return SUBSECTION_PARENT_BY_MAJOR[match[1]] ?? null;
+}
 
 /**
  * 报名文章。
