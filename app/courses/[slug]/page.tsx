@@ -10,6 +10,7 @@ import {
   type CourseEntry,
 } from "@/lib/courses";
 import {
+  getActiveEntitlementScopes,
   getDbCourseMarkdown,
   getPublishedDbCourseEntries,
   getPublishedDbCourseEntry,
@@ -69,6 +70,7 @@ export default async function CoursePage({
   const { course, articles } = await getCourseContext(slug);
   if (!course) notFound();
 
+  const unlockedEntitlements = await getViewerEntitlements();
   const body = await getCourseBody(course, slug);
 
   const { prev, next } = getAdjacentArticlesFromList(articles, slug);
@@ -77,7 +79,11 @@ export default async function CoursePage({
     <article className="mx-auto max-w-3xl px-5 pb-14">
       {/* 章节按钮：左上、阅读时 sticky 常驻 */}
       <div className="sticky top-18 z-30 -mx-5 flex items-center justify-between gap-4 border-b border-edge bg-paper px-5 py-3">
-        <ChapterNav articles={articles} currentSlug={slug} />
+        <ChapterNav
+          articles={articles}
+          currentSlug={slug}
+          unlockedEntitlements={unlockedEntitlements}
+        />
         <Link
           href="/courses"
           className="font-serif text-sm font-semibold text-ink-soft hover:text-red"
@@ -174,4 +180,12 @@ async function getCourseBody(course: CourseEntry, slug: string) {
     return getPublicCourseMarkdown(slug);
   }
   return null;
+}
+
+async function getViewerEntitlements() {
+  const { env } = await getCloudflareContext({ async: true });
+  return getActiveEntitlementScopes({
+    env,
+    requestHeaders: await headers(),
+  });
 }

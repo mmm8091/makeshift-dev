@@ -148,3 +148,30 @@ export async function getDbCourseMarkdown({
 
   return entitlement ? section.bodyMd : null;
 }
+
+/** 当前登录用户拥有的有效权益 scope；只返回 scope，不碰课程正文。 */
+export async function getActiveEntitlementScopes({
+  env,
+  requestHeaders,
+}: {
+  env: CloudflareEnv;
+  requestHeaders: Headers;
+}): Promise<string[]> {
+  const session = await createAuth(env).api.getSession({
+    headers: requestHeaders,
+  });
+  if (!session) return [];
+
+  const rows = await getDb(env)
+    .select({ scope: entitlements.scope })
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, session.user.id),
+        lte(entitlements.startsAt, new Date()),
+        or(isNull(entitlements.expiresAt), gt(entitlements.expiresAt, new Date())),
+      ),
+    );
+
+  return rows.map((row) => row.scope);
+}

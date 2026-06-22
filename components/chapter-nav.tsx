@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { LockIcon } from "@/components/icons";
 import { type CourseEntry, ENROLL_HREF } from "@/lib/courses";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,15 @@ function hrefOf(a: CourseEntry, state: ArticleState): string | null {
   if (state === "locked") return ENROLL_HREF;
   if (a.slug) return `/courses/${a.slug}`;
   return null;
+}
+
+function lockedForViewer(
+  article: CourseEntry,
+  unlockedEntitlements: string[],
+) {
+  if (article.public || !article.available) return false;
+  const scope = article.requiredEntitlement;
+  return scope ? !unlockedEntitlements.includes(scope) : true;
 }
 
 function childArticlesOf(articles: CourseEntry[], parentSlug: string) {
@@ -39,24 +49,28 @@ function NavRow({
   currentSlug,
   index,
   nested = false,
+  unlockedEntitlements,
   onSelect,
 }: {
   article: CourseEntry;
   currentSlug: string;
   index?: number;
   nested?: boolean;
+  unlockedEntitlements: string[];
   onSelect: () => void;
 }) {
   const state = stateOf(article, currentSlug);
-  const href = hrefOf(article, state);
+  const isViewerLocked = lockedForViewer(article, unlockedEntitlements);
+  const href = isViewerLocked ? ENROLL_HREF : hrefOf(article, state);
 
   const inner = (
     <div
       className={cn(
-        "flex items-center gap-3 border-2 px-3 py-2.5",
+        "flex items-center gap-3 border-2 px-3 py-2.5 transition-colors",
         nested && "ml-8 border-l-red/60 py-2",
         state === "current" ? "border-red bg-paper-2" : "border-transparent",
         state === "coming" && "opacity-50",
+        isViewerLocked && state !== "current" && "opacity-60",
       )}
     >
       {!nested && index !== undefined && (
@@ -64,20 +78,28 @@ function NavRow({
           {String(index).padStart(2, "0")}
         </span>
       )}
+      {isViewerLocked && (
+        <span
+          aria-hidden
+          className={cn(
+            "flex h-4 w-4 shrink-0 items-center justify-center text-ink-faint",
+            state === "current" && "text-red",
+          )}
+        >
+          <LockIcon className="h-4 w-4" />
+        </span>
+      )}
       <span
         className={cn(
-          "flex-1 font-serif text-[0.95rem] leading-snug",
+          "min-w-0 flex-1 font-serif text-[0.95rem] leading-snug",
           nested && "text-[0.92rem]",
           state === "current" ? "font-bold text-red" : "text-ink",
+          isViewerLocked && state !== "current" && "text-ink-soft",
         )}
       >
         {labelOf(article)}
+        {isViewerLocked && <span className="sr-only">（报名解锁）</span>}
       </span>
-      {state === "locked" && (
-        <span aria-hidden className="text-sm text-ink-faint">
-          锁
-        </span>
-      )}
     </div>
   );
 
@@ -102,9 +124,11 @@ function NavRow({
 export function ChapterNav({
   articles,
   currentSlug,
+  unlockedEntitlements = [],
 }: {
   articles: CourseEntry[];
   currentSlug: string;
+  unlockedEntitlements?: string[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -151,6 +175,7 @@ export function ChapterNav({
                       article={article}
                       currentSlug={currentSlug}
                       index={index}
+                      unlockedEntitlements={unlockedEntitlements}
                       onSelect={() => setOpen(false)}
                     />
                     {article.slug &&
@@ -160,6 +185,7 @@ export function ChapterNav({
                           article={child}
                           currentSlug={currentSlug}
                           nested
+                          unlockedEntitlements={unlockedEntitlements}
                           onSelect={() => setOpen(false)}
                         />
                       ))}
