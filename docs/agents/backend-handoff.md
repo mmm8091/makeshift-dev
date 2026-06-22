@@ -2,7 +2,7 @@
 
 更新时间：2026-06-22
 
-这份文档记录当前后端、部署和权限系统的实际落地状态。更长期的架构决策见 `docs/adr/`，前端约定见 `docs/agents/frontend.md`，产品边界见 `CONTEXT.md` 和 `docs/草台编子识字班产品技术方案.md`。
+这份文档记录当前后端、部署和权限系统的实际落地状态。更长期的架构决策见 `docs/adr/`，前端约定见 `docs/agents/frontend.md`，课程内容导入约定见 `docs/agents/course-content.md`，产品边界见 `CONTEXT.md` 和 `docs/草台编子识字班产品技术方案.md`。
 
 ## 当前生产入口
 
@@ -116,10 +116,24 @@ https://makeshift-dev.digitalleft.org/api/auth/callback/github
 pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,emailVerified from user; select display_name,role from profiles;"
 ```
 
+### 课程正文读取与导入
+
+- 公开正文继续放 `content/courses/`，由 `lib/content.ts` 明确 import 后打进 Worker bundle。
+- 付费正文从 D1 `course_sections.body_md` 读取，`visibility = 'locked'` 时服务端检查 session + 有效 `entitlements.scope`。
+- `/courses` 会从 D1 读取已发布课程元数据，但不查询 `body_md`。
+- 本地待导入付费正文放 `课程文档/`，该目录已被 `.gitignore` 忽略。
+- 导入 D1 使用 `pnpm course:import -- --remote ...`，详见 `docs/agents/course-content.md`。
+
+主要文件：
+
+- `lib/content.ts`
+- `app/courses/[slug]/page.tsx`
+- `app/courses/page.tsx`
+- `scripts/import-course-section.mjs`
+- `docs/agents/course-content.md`
+
 ## 仍未完成
 
-- 付费课程正文从 D1 读取还没接到 `lib/content.ts`。
-- `/courses/**` 目前仍按公开 Markdown 和前端 gate 展示；正式付费正文不得进入 `content/courses/`。
 - 论坛还未实现。
 - 前端缺口：顶栏「论坛」指向 `/forum` 但路由未实现（点击 404）；首页 / 顶栏 / 课程 Gate 都指向 `/courses/enroll`，但报名正文未写（`ENROLL.available=false`，点进去是「待上传」占位）；课程介绍页（非文章 landing）仍待做。
 - 兑换、注册、登录、发信接口需要更细的限流和机器人防护。
@@ -131,10 +145,10 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 优先级从高到低：
 
-1. 给课程读取层接 D1 付费正文：从 `lib/content.ts` 开始，服务端检查 session + `entitlements.scope` 后读取 `course_sections.body_md`。
-2. 补管理员卡密列表：按 `batch_id`、`scope`、使用次数、过期时间展示，支持禁用未发出的批次。
-3. 增加基础限流：至少覆盖注册、验证码发送、登录、卡密兑换、管理员生成卡密。
-4. 做论坛最小闭环：列表、发帖、回帖、entitlement 保护。
+1. 补管理员卡密列表：按 `batch_id`、`scope`、使用次数、过期时间展示，支持禁用未发出的批次。
+2. 增加基础限流：至少覆盖注册、验证码发送、登录、卡密兑换、管理员生成卡密。
+3. 做论坛最小闭环：列表、发帖、回帖、entitlement 保护。
+4. 做课程内容操作的下一层便利：可选增加 frontmatter 解析、批量导入、导入前预览 diff。
 
 ## 验证命令
 

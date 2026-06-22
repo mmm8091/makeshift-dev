@@ -1,4 +1,5 @@
 import prefaceMarkdown from "@/content/courses/preface.md";
+import willMarkdown from "@/content/courses/01-will.md";
 import { and, asc, eq, gt, isNull, lte, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { courseSections, entitlements } from "@/db/schema";
@@ -15,13 +16,13 @@ import {
  * 这些公开文件在构建期作为字符串打进 Worker bundle，避免 Cloudflare
  * Workers 运行时读不到 Node 文件系统。
  *
- * 将来：付费课程正文存 Cloudflare D1，由服务端校验 session + entitlement 后读取。
- * 那时在这里新增一条受保护分支（按权限从 D1 取 body），阅读页 UI 不变，
- * 只是正文来源和鉴权不同。未解锁时返回 null，由页面渲染解锁引导，不泄漏正文。
+ * 付费课程正文存 Cloudflare D1，由服务端校验 session + entitlement 后读取。
+ * 未解锁时返回 null，由页面渲染解锁引导，不泄漏正文。
  */
 
 const PUBLIC_COURSE_MARKDOWN: Record<string, string> = {
   preface: prefaceMarkdown,
+  "01-will": willMarkdown,
 };
 
 /** 读取公开课程 Markdown 正文；不存在时返回 null。 */

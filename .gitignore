@@ -35,3 +35,6 @@ Thumbs.db
 # Local temp
 tmp/
 temp/
+
+# Local paid course source; publish with scripts/import-course-section.mjs
+课程文档/

@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import {
-  ARTICLES,
   getCourse,
   getAdjacentArticlesFromList,
   mergeArticlesWithDbCourses,
@@ -20,11 +19,7 @@ import { CourseMarkdown } from "@/components/markdown";
 import { ChapterNav } from "@/components/chapter-nav";
 
 export const dynamicParams = true;
-
-// 预渲染所有已知 slug 的文章页（报名、前言等）。
-export function generateStaticParams() {
-  return ARTICLES.filter((c) => c.slug).map((c) => ({ slug: c.slug! }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -154,14 +149,14 @@ async function getCourseContext(slug: string): Promise<{
   course?: CourseEntry;
   articles: CourseEntry[];
 }> {
-  const repoCourse = getCourse(slug);
-  if (repoCourse) {
-    return { course: repoCourse, articles: ARTICLES };
-  }
-
   const { env } = await getCloudflareContext({ async: true });
   const dbCourses = await getPublishedDbCourseEntries(env);
   const articles = mergeArticlesWithDbCourses(dbCourses);
+  const repoCourse = getCourse(slug);
+  if (repoCourse) {
+    return { course: repoCourse, articles };
+  }
+
   return {
     course: dbCourses.find((item) => item.slug === slug),
     articles,

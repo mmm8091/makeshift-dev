@@ -30,6 +30,7 @@ Important project documents:
 
 - `docs/草台编子识字班产品技术方案.md`
 - `docs/草台编子识字班插画美术规范.md`
+- `docs/agents/course-content.md`
 
 Working rules:
 
