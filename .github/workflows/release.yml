@@ -1,0 +1,63 @@
+name: Release on tag
+
+# 人来打 vX.Y.Z 标签并 push；这里只负责机械地发 GitHub Release。
+# 流程：改 CHANGELOG + bump package.json 版本（提交）→ git tag vX.Y.Z → git push --follow-tags
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: ver
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify package.json matches tag
+        run: |
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$pkg" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "::error::package.json version ($pkg) != tag (${{ steps.ver.outputs.version }})"
+            exit 1
+          fi
+
+      - name: Extract release notes from CHANGELOG
+        run: |
+          hdr="## [${{ steps.ver.outputs.version }}]"
+          if ! grep -qF "$hdr" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no section for ${{ steps.ver.outputs.version }}"
+            exit 1
+          fi
+          awk -v hdr="$hdr" '
+            index($0, hdr) == 1 { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture && /^\[[^][]+\]: / { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::Extracted release notes are empty"
+            exit 1
+          fi
+
+      - name: Create or update GitHub Release
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "$tag" --notes-file release-notes.md
+          else
+            gh release create "$tag" --title "$tag" --notes-file release-notes.md --verify-tag
+          fi
