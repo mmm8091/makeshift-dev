@@ -33,7 +33,7 @@
 | [collaboration.md](agents/collaboration.md) | 协作约定 |
 | [frontend.md](agents/frontend.md) | 前端与内容的已落地约定。**【前端必读】** |
 | [course-content.md](agents/course-content.md) | 课程内容导入与公开/私密边界。**【内容必读】** |
-| [backend-handoff.md](agents/backend-handoff.md) | 后端 / 部署当前状态、生产入口、验证命令、已知缺口（**活文档**，随版本更新） |
+| [backend-status.md](agents/backend-status.md) | 后端 / 部署当前状态、生产入口、验证命令、已知缺口（**活文档**，随版本更新） |
 
 ## 归档（[archive/](archive/)）
 
@@ -49,7 +49,7 @@
 2. [adr/2026-06-23-forum-and-agent-access-model.md](adr/2026-06-23-forum-and-agent-access-model.md) — 论坛/Agent 接入决策
 3. [草台编子识字班论坛v1实现规格.md](草台编子识字班论坛v1实现规格.md) — 实现规格
 4. [adr/2026-06-21-cloudflare-d1-auth-foundation.md](adr/2026-06-21-cloudflare-d1-auth-foundation.md) — 论坛复用的 entitlement 模式
-5. [agents/backend-handoff.md](agents/backend-handoff.md) — auth / entitlement / profiles 已就位，是论坛前置
+5. [agents/backend-status.md](agents/backend-status.md) — auth / entitlement / profiles 已就位，是论坛前置
 6. [agents/frontend.md](agents/frontend.md) — 前端约定
 7. [agents/course-content.md](agents/course-content.md) — 公开/私密边界细则
 
@@ -57,4 +57,4 @@
 
 - 发布里程碑与变更 → [CHANGELOG.md](../CHANGELOG.md)；内容贡献不计入版本号。
 - 新架构决策 → [adr/](adr/)（触发条件见 [agents/domain.md](agents/domain.md)）。
-- `backend-handoff.md` 是活文档：已完成的工作归入 CHANGELOG，不在 handoff 里重复堆积。
+- `backend-status.md` 是活文档：已完成的工作归入 CHANGELOG，不在状态文档里重复堆积。

@@ -13,7 +13,7 @@
 
 下一版（论坛 v1）开发中。开发前必读见 [docs/README.md](docs/README.md) 的"论坛 v1 开发前必读"。
 
-已知缺口（详见 [docs/agents/backend-handoff.md](docs/agents/backend-handoff.md)）：
+已知缺口（详见 [docs/agents/backend-status.md](docs/agents/backend-status.md)）：
 
 - `/forum` 路由未实现，顶栏「论坛」点击 404。
 - `/courses/enroll` 报名正文未写，课程 Gate 指向它，当前为占位。
