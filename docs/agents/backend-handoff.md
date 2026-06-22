@@ -11,7 +11,8 @@
 - 生产站点：`https://makeshift-dev.digitalleft.org`
 - Cloudflare Worker：`makeshift-dev`
 - D1 database：`makeshift-dev`，binding `DB`
-- 自动部署：`.github/workflows/deploy-cloudflare.yml`
+- 自动部署：`.github/workflows/deploy-cloudflare.yml`（push `main`）
+- 发版：`.github/workflows/release.yml`（push `v*` 标签自动建 GitHub Release，详见 [CHANGELOG.md](../../CHANGELOG.md) 流程）
 
 `main` 分支 push 后在 GitHub Actions 执行：
 
@@ -63,7 +64,7 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 优先级从高到低：
 
-1. 做论坛最小闭环（按论坛 v1 规格：服务层 + 读路由先行）。
+1. 做论坛 v1：**分前后端两轮、前端先行**（见 [collaboration.md](collaboration.md) 执行节奏 + [论坛 v1 规格](../草台编子识字班论坛v1实现规格.md) §8）。当前 auth / entitlement / profiles 已就位，是论坛前置。
 2. 补管理员卡密列表：按 `batch_id`、`scope`、使用次数、过期时间展示，支持禁用未发出的批次。
 3. 增加基础限流：至少覆盖注册、验证码发送、登录、卡密兑换、管理员生成卡密。
 4. 课程内容操作下一层便利：可选 frontmatter 解析、批量导入、导入前预览 diff。
