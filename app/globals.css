@@ -156,4 +156,29 @@
   .ink-bold {
     -webkit-text-stroke: 0.3px currentColor;
   }
+
+  /* 加载页印记：方正墨框 + 红心，像反复盖章，呼应木刻/丝网印刷肌理 */
+  .quote-loader-mark {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 3px solid var(--color-ink);
+    background-color: var(--color-red);
+    animation: quote-loader-stamp 1.4s ease-in-out infinite;
+  }
+  @keyframes quote-loader-stamp {
+    0%,
+    100% {
+      transform: scale(0.85) rotate(-3deg);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1) rotate(3deg);
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .quote-loader-mark {
+      animation: none;
+    }
+  }
 }

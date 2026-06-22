@@ -18,6 +18,7 @@ import {
 } from "@/lib/content";
 import { CourseMarkdown } from "@/components/markdown";
 import { ChapterNav } from "@/components/chapter-nav";
+import { QuoteEpigraph } from "@/components/quote-epigraph";
 
 export const dynamicParams = true;
 export const dynamic = "force-dynamic";
@@ -91,6 +92,8 @@ export default async function CoursePage({
           返回课程目录 →
         </Link>
       </div>
+
+      <QuoteEpigraph />
 
       <header className="mt-10">
         <p className="kicker">{course.public ? "公开免费" : "报名解锁"}</p>
