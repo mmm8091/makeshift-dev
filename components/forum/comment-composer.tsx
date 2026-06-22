@@ -1,11 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import {
-  addCommentAction,
-  editCommentAction,
-  FORUM_FORM_IDLE,
-} from "@/app/forum/actions";
+import { addCommentAction, editCommentAction } from "@/app/forum/actions";
+import { FORUM_FORM_IDLE } from "@/lib/forum-form-state";
 import { BODY_MAX } from "@/lib/forum-types";
 
 type Props = {

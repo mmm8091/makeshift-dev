@@ -13,19 +13,12 @@ import {
   type ModerationAction,
   type WriteResult,
 } from "@/lib/forum";
+import type { ForumFormState } from "@/lib/forum-form-state";
 
 /**
  * 论坛写操作的 Server Action（规格 §2：写走 Server Action）。
  * 鉴权 / 校验 / 限流都在 `lib/forum.ts`；这里只做参数搬运、跳转与错误回显。
  */
-
-export type ForumFormState = {
-  ok: boolean;
-  message?: string;
-  fieldErrors?: { title?: string; bodyMd?: string; tagSlugs?: string };
-};
-
-const IDLE: ForumFormState = { ok: false };
 
 async function serviceArgs() {
   const { env } = await getCloudflareContext({ async: true });
@@ -128,5 +121,3 @@ export async function moderatePostAction(args: {
   revalidatePath("/forum");
   return { ok: true };
 }
-
-export { IDLE as FORUM_FORM_IDLE };

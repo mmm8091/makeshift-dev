@@ -1,11 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import {
-  createPostAction,
-  editPostAction,
-  FORUM_FORM_IDLE,
-} from "@/app/forum/actions";
+import { createPostAction, editPostAction } from "@/app/forum/actions";
+import { FORUM_FORM_IDLE } from "@/lib/forum-form-state";
 import { TITLE_MAX, BODY_MAX, MAX_TAGS, type Tag } from "@/lib/forum-types";
 
 type Props = {
