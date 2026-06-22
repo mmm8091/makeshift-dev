@@ -42,16 +42,16 @@ function CardInner({ entry }: { entry: CourseEntry }) {
         </p>
       )}
 
-      {entry.available && entry.public && (
+      {entry.available && (
         <span className="mt-4 text-sm font-bold text-red opacity-0 transition-opacity group-hover:opacity-100">
-          开始阅读 →
+          {entry.public ? "开始阅读 →" : "打开课程 →"}
         </span>
       )}
     </>
   );
 }
 
-export function CourseCatalog() {
+export function CourseCatalog({ entries = COURSES }: { entries?: CourseEntry[] }) {
   return (
     <section className="mx-auto max-w-6xl px-5 py-20">
       <div className="flex items-end justify-between gap-4">
@@ -74,8 +74,8 @@ export function CourseCatalog() {
       </p>
 
       <ol className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {COURSES.map((c) => (
-          <li key={c.order}>
+        {entries.map((c) => (
+          <li key={c.slug ?? c.order}>
             {c.available && c.slug ? (
               <Link
                 href={`/courses/${c.slug}`}

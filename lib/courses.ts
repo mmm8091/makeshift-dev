@@ -17,7 +17,13 @@ export type CourseEntry = {
   available: boolean;
   /** 仅 available 时有意义 */
   slug?: string;
+  /** 正文来源：repo 只允许公开正文；d1 可为公开或付费正文 */
+  source?: "repo" | "d1";
+  /** 付费正文所需权益；D1 locked 课程未填时默认 course:full */
+  requiredEntitlement?: string | null;
 };
+
+export const DEFAULT_COURSE_ENTITLEMENT = "course:full";
 
 export const COURSES: CourseEntry[] = [
   {
@@ -28,6 +34,7 @@ export const COURSES: CourseEntry[] = [
       "从认知劳动的重新定价，到技术祭司的黄昏 —— 为什么普通人此刻该重新拿起工具",
     public: true,
     available: true,
+    source: "repo",
   },
   { order: 1, title: "待上传", summary: "", public: true, available: false },
   { order: 2, title: "待上传", summary: "", public: true, available: false },
@@ -58,6 +65,24 @@ export const ENROLL: CourseEntry = {
  */
 export const ARTICLES: CourseEntry[] = [ENROLL, ...COURSES];
 
+/** 合并静态文章壳与 D1 课程元数据；同 slug 时保留静态壳，避免公开正文被 D1 覆盖。 */
+export function mergeArticlesWithDbCourses(
+  dbCourses: CourseEntry[],
+): CourseEntry[] {
+  const slugs = new Set(ARTICLES.map((item) => item.slug).filter(Boolean));
+  const uniqueDbCourses = dbCourses.filter(
+    (item) => item.slug && !slugs.has(item.slug),
+  );
+  const dbOrders = new Set(uniqueDbCourses.map((item) => item.order));
+  const staticArticles = ARTICLES.filter(
+    (item) => item.slug || !dbOrders.has(item.order),
+  );
+
+  return [...staticArticles, ...uniqueDbCourses].sort(
+    (a, b) => a.order - b.order,
+  );
+}
+
 /** 按 slug 取文章元数据（含报名）。 */
 export function getCourse(slug: string): CourseEntry | undefined {
   return ARTICLES.find((c) => c.slug === slug);
@@ -68,10 +93,20 @@ export function getAdjacentArticles(slug: string): {
   prev?: CourseEntry;
   next?: CourseEntry;
 } {
-  const i = ARTICLES.findIndex((c) => c.slug === slug);
+  return getAdjacentArticlesFromList(ARTICLES, slug);
+}
+
+export function getAdjacentArticlesFromList(
+  articles: CourseEntry[],
+  slug: string,
+): {
+  prev?: CourseEntry;
+  next?: CourseEntry;
+} {
+  const i = articles.findIndex((c) => c.slug === slug);
   if (i < 0) return {};
-  const prev = [...ARTICLES.slice(0, i)].reverse().find((c) => c.slug);
-  const next = ARTICLES.slice(i + 1).find((c) => c.slug);
+  const prev = [...articles.slice(0, i)].reverse().find((c) => c.slug);
+  const next = articles.slice(i + 1).find((c) => c.slug);
   return { prev, next };
 }
 

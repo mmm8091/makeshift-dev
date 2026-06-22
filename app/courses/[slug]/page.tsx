@@ -1,15 +1,25 @@
 import Link from "next/link";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import {
   ARTICLES,
   getCourse,
-  getAdjacentArticles,
+  getAdjacentArticlesFromList,
+  mergeArticlesWithDbCourses,
   type CourseEntry,
 } from "@/lib/courses";
-import { getPublicCourseMarkdown } from "@/lib/content";
+import {
+  getDbCourseMarkdown,
+  getPublishedDbCourseEntries,
+  getPublishedDbCourseEntry,
+  getPublicCourseMarkdown,
+} from "@/lib/content";
 import { CourseMarkdown } from "@/components/markdown";
 import { ChapterNav } from "@/components/chapter-nav";
+
+export const dynamicParams = true;
 
 // 预渲染所有已知 slug 的文章页（报名、前言等）。
 export function generateStaticParams() {
@@ -22,9 +32,14 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const course = getCourse(slug);
+  const course = getCourse(slug) ?? (await getDbCourseForMetadata(slug));
   if (!course) return { title: "未找到课程" };
   return { title: course.title, description: course.summary || undefined };
+}
+
+async function getDbCourseForMetadata(slug: string) {
+  const { env } = await getCloudflareContext({ async: true });
+  return getPublishedDbCourseEntry(slug, env);
 }
 
 /** 未解锁/待上传时的占位，不渲染正文。 */
@@ -56,22 +71,18 @@ export default async function CoursePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const course = getCourse(slug);
+  const { course, articles } = await getCourseContext(slug);
   if (!course) notFound();
 
-  // 公开且已上传的课程才读取正文；其余只显示占位，不泄漏正文。
-  const body =
-    course.public && course.available
-      ? await getPublicCourseMarkdown(slug)
-      : null;
+  const body = await getCourseBody(course, slug);
 
-  const { prev, next } = getAdjacentArticles(slug);
+  const { prev, next } = getAdjacentArticlesFromList(articles, slug);
 
   return (
     <article className="mx-auto max-w-3xl px-5 pb-14">
       {/* 章节按钮：左上、阅读时 sticky 常驻 */}
       <div className="sticky top-18 z-30 -mx-5 flex items-center justify-between gap-4 border-b border-edge bg-paper px-5 py-3">
-        <ChapterNav articles={ARTICLES} currentSlug={slug} />
+        <ChapterNav articles={articles} currentSlug={slug} />
         <Link
           href="/courses"
           className="font-serif text-sm font-semibold text-ink-soft hover:text-red"
@@ -83,7 +94,7 @@ export default async function CoursePage({
       <header className="mt-10">
         <p className="kicker">
           {course.order === 0 ? "前言" : `第 ${course.order} 课`}
-          {course.public && " · 公开免费"}
+          {course.public ? " · 公开免费" : " · 报名解锁"}
         </p>
         <h1 className="misprint mt-3 font-display text-4xl font-black leading-tight sm:text-5xl">
           {course.title}
@@ -137,4 +148,38 @@ export default async function CoursePage({
       )}
     </article>
   );
+}
+
+async function getCourseContext(slug: string): Promise<{
+  course?: CourseEntry;
+  articles: CourseEntry[];
+}> {
+  const repoCourse = getCourse(slug);
+  if (repoCourse) {
+    return { course: repoCourse, articles: ARTICLES };
+  }
+
+  const { env } = await getCloudflareContext({ async: true });
+  const dbCourses = await getPublishedDbCourseEntries(env);
+  const articles = mergeArticlesWithDbCourses(dbCourses);
+  return {
+    course: dbCourses.find((item) => item.slug === slug),
+    articles,
+  };
+}
+
+async function getCourseBody(course: CourseEntry, slug: string) {
+  if (!course.available) return null;
+  if (course.source === "d1") {
+    const { env } = await getCloudflareContext({ async: true });
+    return getDbCourseMarkdown({
+      slug,
+      env,
+      requestHeaders: await headers(),
+    });
+  }
+  if (course.public) {
+    return getPublicCourseMarkdown(slug);
+  }
+  return null;
 }

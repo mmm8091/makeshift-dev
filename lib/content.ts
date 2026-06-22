@@ -1,4 +1,12 @@
 import prefaceMarkdown from "@/content/courses/preface.md";
+import { and, asc, eq, gt, isNull, lte, or } from "drizzle-orm";
+import { getDb } from "@/db/client";
+import { courseSections, entitlements } from "@/db/schema";
+import { createAuth } from "@/lib/auth";
+import {
+  DEFAULT_COURSE_ENTITLEMENT,
+  type CourseEntry,
+} from "@/lib/courses";
 
 /**
  * 公开课程正文的读取层（seam）。
@@ -23,4 +31,117 @@ export async function getPublicCourseMarkdown(
   // 防目录穿越：slug 只允许字母、数字、连字符
   if (!/^[a-z0-9-]+$/i.test(slug)) return null;
   return PUBLIC_COURSE_MARKDOWN[slug] ?? null;
+}
+
+type CourseSectionRow = typeof courseSections.$inferSelect;
+
+const publishedCourseColumns = {
+  slug: courseSections.slug,
+  title: courseSections.title,
+  summary: courseSections.summary,
+  visibility: courseSections.visibility,
+  requiredEntitlement: courseSections.requiredEntitlement,
+  orderIndex: courseSections.orderIndex,
+};
+
+function isSafeSlug(slug: string) {
+  return /^[a-z0-9-]+$/i.test(slug);
+}
+
+function toCourseEntry(
+  row: Pick<
+    CourseSectionRow,
+    "slug" | "title" | "summary" | "visibility" | "requiredEntitlement" | "orderIndex"
+  >,
+): CourseEntry {
+  return {
+    order: row.orderIndex,
+    slug: row.slug,
+    title: row.title,
+    summary: row.summary,
+    public: row.visibility === "public",
+    available: true,
+    source: "d1",
+    requiredEntitlement:
+      row.visibility === "locked"
+        ? row.requiredEntitlement || DEFAULT_COURSE_ENTITLEMENT
+        : row.requiredEntitlement,
+  };
+}
+
+/** 读取 D1 中已发布课程的公开元数据；不查询 body_md，避免目录层接触付费正文。 */
+export async function getPublishedDbCourseEntries(
+  env?: Pick<CloudflareEnv, "DB">,
+): Promise<CourseEntry[]> {
+  const rows = await getDb(env)
+    .select(publishedCourseColumns)
+    .from(courseSections)
+    .where(eq(courseSections.status, "published"))
+    .orderBy(asc(courseSections.orderIndex), asc(courseSections.slug));
+
+  return rows.map(toCourseEntry);
+}
+
+/** 按 slug 读取 D1 课程元数据；不返回正文。 */
+export async function getPublishedDbCourseEntry(
+  slug: string,
+  env?: Pick<CloudflareEnv, "DB">,
+): Promise<CourseEntry | null> {
+  if (!isSafeSlug(slug)) return null;
+
+  const [row] = await getDb(env)
+    .select(publishedCourseColumns)
+    .from(courseSections)
+    .where(and(eq(courseSections.slug, slug), eq(courseSections.status, "published")))
+    .limit(1);
+
+  return row ? toCourseEntry(row) : null;
+}
+
+/** 服务端读取 D1 正文：公开课直接返回，付费课必须有 session + 有效 entitlement。 */
+export async function getDbCourseMarkdown({
+  slug,
+  env,
+  requestHeaders,
+}: {
+  slug: string;
+  env: CloudflareEnv;
+  requestHeaders: Headers;
+}): Promise<string | null> {
+  if (!isSafeSlug(slug)) return null;
+
+  const db = getDb(env);
+  const [section] = await db
+    .select({
+      bodyMd: courseSections.bodyMd,
+      visibility: courseSections.visibility,
+      requiredEntitlement: courseSections.requiredEntitlement,
+    })
+    .from(courseSections)
+    .where(and(eq(courseSections.slug, slug), eq(courseSections.status, "published")))
+    .limit(1);
+
+  if (!section?.bodyMd) return null;
+  if (section.visibility === "public") return section.bodyMd;
+
+  const session = await createAuth(env).api.getSession({
+    headers: requestHeaders,
+  });
+  if (!session) return null;
+
+  const scope = section.requiredEntitlement || DEFAULT_COURSE_ENTITLEMENT;
+  const [entitlement] = await db
+    .select({ id: entitlements.id })
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, session.user.id),
+        eq(entitlements.scope, scope),
+        lte(entitlements.startsAt, new Date()),
+        or(isNull(entitlements.expiresAt), gt(entitlements.expiresAt, new Date())),
+      ),
+    )
+    .limit(1);
+
+  return entitlement ? section.bodyMd : null;
 }
