@@ -15,7 +15,8 @@
 
 已知缺口（详见 [docs/agents/backend-status.md](docs/agents/backend-status.md)）：
 
-- `/forum` 路由未实现，顶栏「论坛」点击 404。
+- 论坛 v1 前后端主链路已落地：`/forum`、`/forum/t/[slug]`、`/forum/new`、`/forum/tag/[tag]` + Gate / 题记 / 头像 / Markdown（不开 `rehype-raw`）齐活；`lib/forum.ts` 已接真实 session、`course:full` entitlement、D1 读写、slug、限流与软删除，顶栏论坛入口已恢复。
+- 论坛 D1 需要执行最新 migration 并灌入真实首帖内容；当前仓库不保存受限论坛正文备份。
 - `/courses/enroll` 报名正文未写，课程 Gate 指向它，当前为占位。
 - 注册 / 验证码 / 登录 / 兑换接口缺更细的限流与机器人防护。
 - 管理后台仅能生成卡密，缺批次列表、禁用、使用记录查询。

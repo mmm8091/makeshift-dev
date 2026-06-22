@@ -34,11 +34,14 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 | 顶栏登录态 | `components/header-auth.tsx`、`components/site-header.tsx` |
 | 卡密与权益 | `lib/redeem-codes.ts`、`app/api/admin/redeem-codes/route.ts`、`app/admin/redeem-codes/page.tsx`、`components/admin/redeem-code-admin.tsx`、`app/api/redeem/route.ts` |
 | 课程正文读取 / 导入 | `lib/content.ts`、`app/courses/[slug]/page.tsx`、`app/courses/page.tsx`、`scripts/import-course-section.mjs` |
+| 论坛 v1 | `lib/forum.ts`、`lib/forum-types.ts`、`app/forum/`、`components/forum/`、`drizzle/migrations/0002_seed_forum_tags.sql` |
 
 要点提醒：
 
 - 付费正文从 D1 `course_sections.body_md` 读取，`visibility = locked` 时服务端检查 session + 有效 `entitlements.scope`；`/courses` 读元数据但不查 `body_md`。
 - 当前正式 entitlement scope 为 `course:full`。
+- 论坛 v1 同样复用 `course:full`：`lib/forum.ts` 负责 session、profiles、entitlement、D1 读写、slug、发帖/回帖限流、作者/管理员授权与软删除；`/forum` 顶栏入口已恢复。
+- 论坛默认标签 migration 已在远端 D1 执行：`homework` / `ask` / `share` / `pitfall`。当前远端 `forum_posts` 仍为 0，首帖需由管理员通过 UI 或受控 D1 写入。
 - 顶栏登录态**刻意走客户端 `useSession`**，以保留首页 / 课程页的静态渲染。
 - 本地待导入付费正文放 `课程文档/`（已 `.gitignore`），导入用 `pnpm course:import -- --remote ...`，详见 [course-content.md](course-content.md)。
 
@@ -54,8 +57,9 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 ## 仍未完成
 
-- 论坛尚未实现（**已出 v1 规格**，见 [docs/README.md](../README.md) 的"论坛 v1 开发前必读"）。
-- 前端缺口：顶栏「论坛」指向 `/forum` 但路由未实现（点击 404）；首页 / 顶栏 / 课程 Gate 指向 `/courses/enroll`，但报名正文未写（`ENROLL.available=false`，点进去是「待上传」占位）；课程介绍页（非文章 landing）仍待做。
+- 论坛 v1 还缺真实首帖 / 公告 / 作业示例等 D1 内容灌入；不要把受限论坛正文备份提交进仓库。
+- 论坛后续可补更细的管理能力：评论隐藏 / 删除、管理员列表页、用户禁言或更长窗口限流。
+- 前端缺口：首页 / 顶栏 / 课程 Gate 指向 `/courses/enroll`，但报名正文未写（`ENROLL.available=false`，点进去是「待上传」占位）；课程介绍页（非文章 landing）仍待做。
 - 兑换、注册、登录、发信接口需要更细的限流与机器人防护。
 - 管理后台只有生成卡密，缺批次列表、禁用、使用记录查询。
 - DirectMail 发送日志当前用于排障，后续可收敛成更少的结构化日志。
@@ -64,7 +68,7 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 优先级从高到低：
 
-1. 做论坛 v1：**分前后端两轮、前端先行**（见 [collaboration.md](collaboration.md) 执行节奏 + [论坛 v1 规格](../草台编子识字班论坛v1实现规格.md) §8）。当前 auth / entitlement / profiles 已就位，是论坛前置。
+1. 由管理员发第一批真实论坛内容（公告 / 作业分享引导），并做学员 / 管理员两视角 smoke test。
 2. 补管理员卡密列表：按 `batch_id`、`scope`、使用次数、过期时间展示，支持禁用未发出的批次。
 3. 增加基础限流：至少覆盖注册、验证码发送、登录、卡密兑换、管理员生成卡密。
 4. 课程内容操作下一层便利：可选 frontmatter 解析、批量导入、导入前预览 diff。
@@ -76,6 +80,7 @@ pnpm typecheck
 pnpm build
 gh run list --repo mmm8091/makeshift-dev --limit 3
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from user;"
+pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from forum_posts; select slug,name from forum_tags;"
 ```
 
 ## 交接提醒
