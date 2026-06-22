@@ -1,4 +1,6 @@
 import ReactMarkdown, { type Components } from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import remarkCjkFriendly from "remark-cjk-friendly";
 
@@ -65,7 +67,8 @@ export function CourseMarkdown({ markdown }: { markdown: string }) {
   return (
     <div className="prose-letterpress">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkCjkFriendly]}
+        remarkPlugins={[remarkMath, remarkGfm, remarkCjkFriendly]}
+        rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false }]]}
         components={components}
       >
         {markdown}
