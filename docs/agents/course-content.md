@@ -41,6 +41,17 @@ pnpm course:import -- --remote --file "课程文档/1.1：意图驱动开发.md"
 
 The script upserts `course_sections` by slug and writes the Markdown into `body_md`.
 
+Before importing, the script runs the same Markdown checks as:
+
+```powershell
+pnpm course:lint -- --file "课程文档/1.4：GitHub——全世界程序员的作品集.md"
+```
+
+The linter does not rewrite course text. It reports risky Markdown patterns
+with file, line, and column numbers, especially Feishu-exported escaped URLs
+such as `https://github\.com` and bare URLs inside Chinese prose parentheses.
+Fix those as explicit Markdown links before importing.
+
 ## Image Assets In Locked Markdown
 
 If locked Markdown references images, put only non-sensitive reusable assets under `public/`.

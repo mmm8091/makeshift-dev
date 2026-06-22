@@ -2,6 +2,10 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import {
+  formatFindings,
+  lintMarkdownFile,
+} from "./lint-course-markdown.mjs";
 
 const DEFAULT_DATABASE = "makeshift-dev";
 const DEFAULT_ENTITLEMENT = "course:full";
@@ -36,7 +40,14 @@ if (!/^[a-z0-9-]+$/i.test(args.slug)) {
   fail("--slug 只能包含字母、数字和连字符");
 }
 
-const body = readFileSync(resolve(args.file), "utf8");
+const filePath = resolve(args.file);
+const lintFindings = lintMarkdownFile(filePath);
+if (lintFindings.length > 0) {
+  console.error(formatFindings(lintFindings));
+  process.exit(1);
+}
+
+const body = readFileSync(filePath, "utf8");
 const now = Date.now();
 const requiredEntitlement =
   visibility === "locked"
