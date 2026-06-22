@@ -1,5 +1,5 @@
 import { Logo } from "@/components/logo";
-import { SITE } from "@/lib/site";
+import { SITE, APP_VERSION, APP_BUILD_SHA } from "@/lib/site";
 
 export function SiteFooter() {
   return (
@@ -19,16 +19,21 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-edge">
-        <div className="mx-auto max-w-6xl px-5 py-4 text-xs text-ink-faint">
-          代码与协作公开于{" "}
-          <a
-            href={SITE.github}
-            target="_blank"
-            rel="noreferrer"
-            className="font-semibold underline underline-offset-2 hover:text-red"
-          >
-            GitHub
-          </a>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4 text-xs text-ink-faint">
+          <span>
+            代码与协作公开于{" "}
+            <a
+              href={SITE.github}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold underline underline-offset-2 hover:text-red"
+            >
+              GitHub
+            </a>
+          </span>
+          <span className="font-mono">
+            v{APP_VERSION} · {APP_BUILD_SHA}
+          </span>
         </div>
       </div>
     </footer>
