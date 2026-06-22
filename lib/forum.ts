@@ -40,6 +40,8 @@ import {
   type Author,
   type Comment,
   type ContentStatus,
+  type ForumTagAdmin,
+  type ForumTagWriteResult,
   type ForumRole,
   type ModerationAction,
   type PostListPage,
@@ -64,6 +66,8 @@ type ForumCommentRow = typeof forumComments.$inferSelect;
 
 const SAFE_SLUG_RE = /^[a-z0-9-]+$/;
 const SAFE_CURSOR_RE = /^[a-zA-Z0-9-]+$/;
+const TAG_NAME_MAX = 40;
+const TAG_SLUG_MAX = 40;
 
 const POST_RATE_MS = 5_000;
 const COMMENT_RATE_MS = 3_000;
@@ -130,6 +134,16 @@ function sortTags(tags: Tag[]): Tag[] {
   });
 }
 
+function sortAdminTags(tags: ForumTagAdmin[]): ForumTagAdmin[] {
+  return [...tags].sort((a, b) => {
+    if (a.hidden !== b.hidden) return a.hidden ? 1 : -1;
+    const ai = DEFAULT_TAG_ORDER.get(a.slug) ?? Number.MAX_SAFE_INTEGER;
+    const bi = DEFAULT_TAG_ORDER.get(b.slug) ?? Number.MAX_SAFE_INTEGER;
+    if (ai !== bi) return ai - bi;
+    return a.slug.localeCompare(b.slug);
+  });
+}
+
 /** Markdown -> 纯文本预览：去掉常见控制符，列表页不暴露正文 Markdown。 */
 function excerptOf(bodyMd: string, max = 80): string {
   const text = bodyMd
@@ -164,7 +178,7 @@ async function loadTagsForPosts(
     })
     .from(forumPostTags)
     .innerJoin(forumTags, eq(forumPostTags.tagId, forumTags.id))
-    .where(inArray(forumPostTags.postId, postIds))
+    .where(and(inArray(forumPostTags.postId, postIds), isNull(forumTags.hiddenAt)))
     .orderBy(asc(forumTags.slug));
 
   for (const row of rows) {
@@ -230,7 +244,7 @@ async function validateTagSlugs(
   const rows = await db
     .select({ id: forumTags.id, slug: forumTags.slug })
     .from(forumTags)
-    .where(inArray(forumTags.slug, normalized));
+    .where(and(inArray(forumTags.slug, normalized), isNull(forumTags.hiddenAt)));
 
   if (rows.length !== normalized.length) {
     return { tagIds: [], error: "含未知标签" };
@@ -241,6 +255,24 @@ async function validateTagSlugs(
     tagIds: normalized.map((slug) => idsBySlug.get(slug)!),
     error: null,
   };
+}
+
+function validateTagName(name: string): string | null {
+  const n = name.trim();
+  if (n.length === 0) return "标签名不能为空";
+  if (n.length > TAG_NAME_MAX) return `标签名不超过 ${TAG_NAME_MAX} 字`;
+  return null;
+}
+
+function validateTagSlug(slug: string): string | null {
+  const s = slug.trim().toLowerCase();
+  if (s.length === 0) return "slug 不能为空";
+  if (s.length > TAG_SLUG_MAX) return `slug 不超过 ${TAG_SLUG_MAX} 字`;
+  if (!isSafeSlug(s)) return "slug 只能用小写字母、数字和连字符";
+  if (s.startsWith("-") || s.endsWith("-") || s.includes("--")) {
+    return "slug 不能以连字符开头或结尾，也不要连续连字符";
+  }
+  return null;
 }
 
 function validateTitle(title: string): string | null {
@@ -373,8 +405,137 @@ export async function listTags(args: { env: CloudflareEnv }): Promise<Tag[]> {
   const rows = await db
     .select({ slug: forumTags.slug, name: forumTags.name })
     .from(forumTags)
+    .where(isNull(forumTags.hiddenAt))
     .orderBy(asc(forumTags.slug));
   return sortTags(rows.map((row) => ({ slug: row.slug, name: row.name })));
+}
+
+export async function listTagsForAdmin(
+  args: ServiceArgs,
+): Promise<ForumTagAdmin[] | null> {
+  const viewer = await resolveViewer(args);
+  if (viewer?.role !== "admin") return null;
+
+  const db = getDb(args.env);
+  await ensureDefaultTags(db);
+  const rows = await db
+    .select({
+      id: forumTags.id,
+      slug: forumTags.slug,
+      name: forumTags.name,
+      hiddenAt: forumTags.hiddenAt,
+    })
+    .from(forumTags)
+    .orderBy(asc(forumTags.slug));
+  const counts = await db
+    .select({ tagId: forumPostTags.tagId, count: sql<number>`count(*)` })
+    .from(forumPostTags)
+    .groupBy(forumPostTags.tagId);
+  const countByTag = new Map(counts.map((row) => [row.tagId, Number(row.count)]));
+
+  return sortAdminTags(
+    rows.map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      hidden: row.hiddenAt !== null,
+      hiddenAt: row.hiddenAt ? toMs(row.hiddenAt) : null,
+      postCount: countByTag.get(row.id) ?? 0,
+    })),
+  );
+}
+
+export async function createForumTag(
+  args: ServiceArgs & { input: { name: string; slug: string } },
+): Promise<ForumTagWriteResult<{ tag: ForumTagAdmin }>> {
+  const viewer = await resolveViewer(args);
+  if (viewer?.role !== "admin") {
+    return { ok: false, reason: "forbidden", message: "仅管理员可操作" };
+  }
+
+  const name = args.input.name.trim();
+  const slug = args.input.slug.trim().toLowerCase();
+  const fieldErrors: NonNullable<
+    Extract<ForumTagWriteResult, { ok: false }>["fieldErrors"]
+  > = {};
+  const nameErr = validateTagName(name);
+  if (nameErr) fieldErrors.name = nameErr;
+  const slugErr = validateTagSlug(slug);
+  if (slugErr) fieldErrors.slug = slugErr;
+  if (Object.keys(fieldErrors).length > 0) {
+    return { ok: false, reason: "invalid", fieldErrors };
+  }
+
+  const db = getDb(args.env);
+  await ensureDefaultTags(db);
+  const [existing] = await db
+    .select({ id: forumTags.id })
+    .from(forumTags)
+    .where(eq(forumTags.slug, slug))
+    .limit(1);
+  if (existing) {
+    return {
+      ok: false,
+      reason: "invalid",
+      fieldErrors: { slug: "这个 slug 已存在" },
+    };
+  }
+
+  const id = `tag-${slug}`;
+  await db.insert(forumTags).values({ id, slug, name, hiddenAt: null });
+  return {
+    ok: true,
+    tag: { id, slug, name, hidden: false, hiddenAt: null, postCount: 0 },
+  };
+}
+
+export async function renameForumTag(
+  args: ServiceArgs & { tagId: string; name: string },
+): Promise<ForumTagWriteResult> {
+  const viewer = await resolveViewer(args);
+  if (viewer?.role !== "admin") {
+    return { ok: false, reason: "forbidden", message: "仅管理员可操作" };
+  }
+
+  const name = args.name.trim();
+  const nameErr = validateTagName(name);
+  if (nameErr) {
+    return { ok: false, reason: "invalid", fieldErrors: { name: nameErr } };
+  }
+
+  const db = getDb(args.env);
+  const [tag] = await db
+    .select({ id: forumTags.id })
+    .from(forumTags)
+    .where(eq(forumTags.id, args.tagId))
+    .limit(1);
+  if (!tag) return { ok: false, reason: "invalid", message: "标签不存在" };
+
+  await db.update(forumTags).set({ name }).where(eq(forumTags.id, tag.id));
+  return { ok: true };
+}
+
+export async function setForumTagHidden(
+  args: ServiceArgs & { tagId: string; hidden: boolean },
+): Promise<ForumTagWriteResult> {
+  const viewer = await resolveViewer(args);
+  if (viewer?.role !== "admin") {
+    return { ok: false, reason: "forbidden", message: "仅管理员可操作" };
+  }
+
+  const db = getDb(args.env);
+  const [tag] = await db
+    .select({ id: forumTags.id })
+    .from(forumTags)
+    .where(eq(forumTags.id, args.tagId))
+    .limit(1);
+  if (!tag) return { ok: false, reason: "invalid", message: "标签不存在" };
+
+  await db
+    .update(forumTags)
+    .set({ hiddenAt: args.hidden ? new Date() : null })
+    .where(eq(forumTags.id, tag.id));
+  return { ok: true };
 }
 
 export async function listPosts(
@@ -392,7 +553,7 @@ export async function listPosts(
     const [tagRow] = await db
       .select({ slug: forumTags.slug, name: forumTags.name })
       .from(forumTags)
-      .where(eq(forumTags.slug, args.tag))
+      .where(and(eq(forumTags.slug, args.tag), isNull(forumTags.hiddenAt)))
       .limit(1);
     tag = tagRow ? { slug: tagRow.slug, name: tagRow.name } : { slug: args.tag, name: args.tag };
   }

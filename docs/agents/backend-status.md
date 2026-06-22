@@ -34,14 +34,15 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 | 顶栏登录态 | `components/header-auth.tsx`、`components/site-header.tsx` |
 | 卡密与权益 | `lib/redeem-codes.ts`、`app/api/admin/redeem-codes/route.ts`、`app/admin/redeem-codes/page.tsx`、`components/admin/redeem-code-admin.tsx`、`app/api/redeem/route.ts` |
 | 课程正文读取 / 导入 | `lib/content.ts`、`app/courses/[slug]/page.tsx`、`app/courses/page.tsx`、`scripts/import-course-section.mjs` |
-| 论坛 v1 | `lib/forum.ts`、`lib/forum-types.ts`、`app/forum/`、`components/forum/`、`drizzle/migrations/0002_seed_forum_tags.sql` |
+| 论坛 v1 | `lib/forum.ts`、`lib/forum-types.ts`、`app/forum/`、`components/forum/`、`app/admin/forum-tags/`、`components/admin/forum-tag-admin-panel.tsx`、`drizzle/migrations/0002_seed_forum_tags.sql`、`drizzle/migrations/0003_forum_tag_visibility.sql` |
 
 要点提醒：
 
 - 付费正文从 D1 `course_sections.body_md` 读取，`visibility = locked` 时服务端检查 session + 有效 `entitlements.scope`；`/courses` 读元数据但不查 `body_md`。
 - 当前正式 entitlement scope 为 `course:full`。
 - 论坛 v1 同样复用 `course:full`：`lib/forum.ts` 负责 session、profiles、entitlement、D1 读写、slug、发帖/回帖限流、作者/管理员授权与软删除；`/forum` 顶栏入口已恢复。
-- 论坛默认标签 migration 已在远端 D1 执行：`homework` / `ask` / `share` / `pitfall`。当前远端 `forum_posts` 仍为 0，首帖需由管理员通过 UI 或受控 D1 写入。
+- 论坛默认标签 migration 已在远端 D1 执行：`homework` / `ask` / `share` / `pitfall`。管理员可在 `/admin/forum-tags` 新增、改名、隐藏/恢复标签；学员只能选择未隐藏标签。
+- 当前远端 `forum_posts` 仍为 0，首帖需由管理员通过 UI 或受控 D1 写入。
 - 顶栏登录态**刻意走客户端 `useSession`**，以保留首页 / 课程页的静态渲染。
 - 本地待导入付费正文放 `课程文档/`（已 `.gitignore`），导入用 `pnpm course:import -- --remote ...`，详见 [course-content.md](course-content.md)。
 
@@ -80,7 +81,7 @@ pnpm typecheck
 pnpm build
 gh run list --repo mmm8091/makeshift-dev --limit 3
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from user;"
-pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from forum_posts; select slug,name from forum_tags;"
+pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from forum_posts; select slug,name,hidden_at from forum_tags;"
 ```
 
 ## 交接提醒

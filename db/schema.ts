@@ -302,6 +302,7 @@ export const forumTags = sqliteTable("forum_tags", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
+  hiddenAt: integer("hidden_at", { mode: "timestamp_ms" }),
 });
 
 export const forumPostTags = sqliteTable(

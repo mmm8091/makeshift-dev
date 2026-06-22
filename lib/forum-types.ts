@@ -29,6 +29,27 @@ export type Tag = {
   name: string;
 };
 
+export type ForumTagAdmin = Tag & {
+  id: string;
+  hidden: boolean;
+  hiddenAt: number | null;
+  postCount: number;
+};
+
+export type ForumTagFieldErrors = {
+  name?: string;
+  slug?: string;
+};
+
+export type ForumTagWriteResult<T = Record<never, never>> =
+  | ({ ok: true } & T)
+  | {
+      ok: false;
+      reason: WriteFailReason;
+      message?: string;
+      fieldErrors?: ForumTagFieldErrors;
+    };
+
 /** 帖子/回复作者的展示信息；头像走 /api/avatar/qq/:qq，无 QQ 用默认。 */
 export type Author = {
   userId: string;

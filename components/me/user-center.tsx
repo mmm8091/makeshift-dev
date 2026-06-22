@@ -403,17 +403,21 @@ export function UserCenter({
           {profile.role === "admin" && (
             <section className="border-2 border-edge bg-paper-2 p-6">
               <p className="kicker">管理</p>
-              <h2 className="mt-2 font-display text-2xl font-black">
-                卡密发放
-              </h2>
+              <h2 className="mt-2 font-display text-2xl font-black">后台入口</h2>
               <p className="mt-3 font-serif text-sm text-ink-soft">
-                生成卡密后明文只显示一次，发给学员前先保存到你自己的私密记录里
+                课程发放和论坛秩序从这里进，具体操作别写进公开仓库
               </p>
               <Link
                 href="/admin/redeem-codes"
                 className="mt-5 inline-flex w-full items-center justify-center border-2 border-ink bg-paper px-5 py-3 font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
               >
                 进入卡密管理
+              </Link>
+              <Link
+                href="/admin/forum-tags"
+                className="mt-3 inline-flex w-full items-center justify-center border-2 border-ink bg-paper px-5 py-3 font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
+              >
+                管理论坛标签
               </Link>
             </section>
           )}
