@@ -11,16 +11,41 @@
 
 ## [未发布]
 
-下一版（论坛 v1）开发中。开发前必读见 [docs/README.md](docs/README.md) 的"论坛 v1 开发前必读"。
+暂无。
 
-已知缺口（详见 [docs/agents/backend-status.md](docs/agents/backend-status.md)）：
+## [0.2.0] - 2026-06-23
 
-- 论坛 v1 前后端主链路已落地：`/forum`、`/forum/t/[slug]`、`/forum/new`、`/forum/tag/[tag]` + Gate / 题记 / 头像 / Markdown（不开 `rehype-raw`）齐活；`lib/forum.ts` 已接真实 session、`course:full` entitlement、D1 读写、slug、限流与软删除，顶栏论坛入口已恢复。
-- 论坛标签后台已落地：管理员可在 `/admin/forum-tags` 新增、改名、隐藏/恢复标签；学员只能选择未隐藏标签。
-- 论坛 D1 需要灌入真实首帖内容；当前仓库不保存受限论坛正文备份。
-- `/courses/enroll` 报名正文未写，课程 Gate 指向它，当前为占位。
-- 注册 / 验证码 / 登录 / 兑换接口缺更细的限流与机器人防护。
-- 卡密后台仅能生成卡密，缺批次列表、禁用、使用记录查询。
+论坛 v1 上线版：把课程社区从“能读课”推进到“能在工棚里交作业、问问题、发公告、做基本管理”的阶段。
+
+### 论坛
+
+- 新增 `/forum`、`/forum/new`、`/forum/t/[slug]`、`/forum/tag/[tag]` 主链路。
+- 论坛读写接入真实 session、`course:full` entitlement、D1、slug 生成、发帖 / 回帖限流与软删除。
+- 发帖、编辑帖、回帖、编辑回复走 Server Action，错误可回显到表单。
+- 论坛正文使用 Markdown 渲染，保留 `remark-gfm`，不启用原始 HTML 渲染。
+- 列表只展示纯文本摘要，不把完整受限正文放进列表 payload。
+- 顶栏恢复「论坛」入口，未解锁用户进入论坛时渲染解锁引导。
+
+### 标签与管理
+
+- 新增 `/admin/forum-tags`：管理员可新增、改名、隐藏 / 恢复标签。
+- 学员发帖时只能选择未隐藏标签；公开帖子也不展示已隐藏标签。
+- 管理员可置顶、隐藏、删除帖子；删除与隐藏均为软删除。
+- 论坛页新增管理员「管理视图」：列出已隐藏 / 已删除帖子，并支持恢复公开。
+- 详情页管理条补齐下架帖的恢复能力。
+
+### 修复与上线打磨
+
+- 修复 `/forum/new` 提交时因 `"use server"` 文件导出普通对象导致的线上 server action 500。
+- 修复论坛读路径不必要写 D1 的问题，避免 GET 页面触发写操作。
+- 修复已删除帖子仍出现在普通论坛列表的问题。
+- 写入第一条发布公告帖，论坛具备真实线上内容入口。
+
+### 文档与基础设施
+
+- 新增并更新论坛 v1 实现规格，记录管理视图与 `restore` 管理动作。
+- 新增论坛默认标签与标签可见性 D1 迁移。
+- 更新后台状态文档，继续把受限论坛正文排除在公开仓库之外。
 
 ## [0.1.0] - 2026-06-23
 
@@ -84,5 +109,6 @@
 - ADR：D1 与账号基础、暖纸墨绿 UI 方向、Cloudflare 自定义域入口、DirectMail 邮箱 OTP、论坛与 Agent 接入模型。
 - 产品技术方案、插画美术规范、论坛 v1 实现规格，以及协作 / 触发标签 / 领域等 agent 工作规则。
 
-[未发布]: https://github.com/mmm8091/makeshift-dev/compare/v0.1.0...HEAD
+[未发布]: https://github.com/mmm8091/makeshift-dev/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mmm8091/makeshift-dev/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mmm8091/makeshift-dev/releases/tag/v0.1.0
