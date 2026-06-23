@@ -104,7 +104,7 @@ export default async function ThreadPage({
           postId={post.id}
           slug={post.slug}
           pinned={post.pinned}
-          hidden={post.status === "hidden"}
+          status={post.status}
         />
       )}
 

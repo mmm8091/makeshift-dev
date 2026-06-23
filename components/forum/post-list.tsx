@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { PostSummary } from "@/lib/forum";
 import { AuthorByline } from "@/components/forum/author-byline";
 import { TagChips } from "@/components/forum/tag-chips";
+import { RestorePostButton } from "@/components/forum/restore-post-button";
 
 /** 帖子状态徽记：仅在管理员视图会看到非 published 的帖子。 */
 function StatusBadge({ status }: { status: PostSummary["status"] }) {
@@ -14,7 +15,13 @@ function StatusBadge({ status }: { status: PostSummary["status"] }) {
   );
 }
 
-function PostCard({ post }: { post: PostSummary }) {
+function PostCard({
+  post,
+  showManagementActions,
+}: {
+  post: PostSummary;
+  showManagementActions: boolean;
+}) {
   const muted = post.status !== "published";
   return (
     <li>
@@ -45,11 +52,16 @@ function PostCard({ post }: { post: PostSummary }) {
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <AuthorByline author={post.author} when={post.createdAt} size="sm" />
-          <span className="font-serif text-xs text-ink-faint">
-            {post.commentCount > 0 ? `${post.commentCount} 条回复` : "还没人回"}
-          </span>
+          <div className="flex items-center gap-3">
+            {showManagementActions && post.status !== "published" && (
+              <RestorePostButton postId={post.id} slug={post.slug} />
+            )}
+            <span className="font-serif text-xs text-ink-faint">
+              {post.commentCount > 0 ? `${post.commentCount} 条回复` : "还没人回"}
+            </span>
+          </div>
         </div>
       </article>
     </li>
@@ -59,9 +71,11 @@ function PostCard({ post }: { post: PostSummary }) {
 export function PostList({
   posts,
   emptyHint = "还没有帖子，来开第一帖",
+  showManagementActions = false,
 }: {
   posts: PostSummary[];
   emptyHint?: string;
+  showManagementActions?: boolean;
 }) {
   if (posts.length === 0) {
     return (
@@ -73,7 +87,11 @@ export function PostList({
   return (
     <ul className="space-y-4">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <PostCard
+          key={post.id}
+          post={post}
+          showManagementActions={showManagementActions}
+        />
       ))}
     </ul>
   );

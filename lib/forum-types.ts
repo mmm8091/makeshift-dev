@@ -117,7 +117,7 @@ export type ThreadView = {
   viewer: Viewer;
 };
 
-export type ModerationAction = "pin" | "unpin" | "hide" | "delete";
+export type ModerationAction = "pin" | "unpin" | "hide" | "delete" | "restore";
 
 export type PostPatch = {
   title?: string;

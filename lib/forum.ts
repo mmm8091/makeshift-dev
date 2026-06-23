@@ -525,13 +525,22 @@ export async function setForumTagHidden(
 }
 
 export async function listPosts(
-  args: ServiceArgs & { tag?: string; cursor?: string; limit?: number },
+  args: ServiceArgs & {
+    tag?: string;
+    cursor?: string;
+    limit?: number;
+    moderation?: boolean;
+  },
 ): Promise<PostListPage | null> {
   const viewer = await resolveViewer(args);
   if (!viewer?.hasForumAccess) return null;
 
   const db = getDb(args.env);
   const limit = Math.min(Math.max(args.limit ?? 20, 1), 50);
+  const moderation = args.moderation === true;
+  if (moderation && viewer.role !== "admin") {
+    return { posts: [], nextCursor: null, tag: null, viewer };
+  }
 
   let tag: Tag | null = null;
   if (args.tag !== undefined) {
@@ -559,8 +568,15 @@ export async function listPosts(
     })
     .from(forumPosts)
     .leftJoin(profiles, eq(forumPosts.authorId, profiles.userId))
-    .where(eq(forumPosts.status, "published"))
-    .orderBy(desc(forumPosts.pinnedAt), desc(forumPosts.createdAt));
+    .where(
+      moderation
+        ? or(eq(forumPosts.status, "hidden"), eq(forumPosts.status, "deleted"))
+        : eq(forumPosts.status, "published"),
+    )
+    .orderBy(
+      moderation ? desc(forumPosts.updatedAt) : desc(forumPosts.pinnedAt),
+      desc(forumPosts.createdAt),
+    );
 
   const postIds = rows.map((row) => row.id);
   const tagsByPost = await loadTagsForPosts(db, postIds);
@@ -899,6 +915,9 @@ export async function moderatePost(
       break;
     case "delete":
       patch.status = "deleted";
+      break;
+    case "restore":
+      patch.status = "published";
       break;
   }
 
