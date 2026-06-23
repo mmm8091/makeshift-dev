@@ -211,6 +211,69 @@ export const rateLimits = sqliteTable(
   ],
 );
 
+export const agentAccessTokens = sqliteTable(
+  "agent_access_tokens",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    tokenPrefix: text("token_prefix").notNull(),
+    scopes: text("scopes").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+    revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
+    lastUsedIpHash: text("last_used_ip_hash"),
+    lastUsedUserAgentHash: text("last_used_user_agent_hash"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+  },
+  (table) => [
+    uniqueIndex("agent_access_tokens_hash_unique").on(table.tokenHash),
+    index("agent_access_tokens_user_id_idx").on(table.userId),
+    index("agent_access_tokens_revoked_idx").on(table.revokedAt),
+    index("agent_access_tokens_expires_idx").on(table.expiresAt),
+  ],
+);
+
+export const agentAccessAuditLogs = sqliteTable(
+  "agent_access_audit_logs",
+  {
+    id: text("id").primaryKey(),
+    tokenId: text("token_id").references(() => agentAccessTokens.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    surface: text("surface", { enum: ["mcp", "api"] }).notNull(),
+    action: text("action").notNull(),
+    outcome: text("outcome", {
+      enum: ["ok", "denied", "error", "rate_limited"],
+    }).notNull(),
+    scope: text("scope"),
+    ipHash: text("ip_hash"),
+    userAgentHash: text("user_agent_hash"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+  },
+  (table) => [
+    index("agent_access_audit_logs_token_id_idx").on(table.tokenId),
+    index("agent_access_audit_logs_user_created_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+    index("agent_access_audit_logs_surface_created_idx").on(
+      table.surface,
+      table.createdAt,
+    ),
+  ],
+);
+
 export const courseSections = sqliteTable(
   "course_sections",
   {

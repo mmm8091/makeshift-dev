@@ -34,6 +34,7 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 | 顶栏登录态 | `components/header-auth.tsx`、`components/site-header.tsx` |
 | 卡密与权益 | `lib/redeem-codes.ts`、`app/api/admin/redeem-codes/route.ts`、`app/admin/redeem-codes/page.tsx`、`components/admin/redeem-code-admin.tsx`、`app/api/redeem/route.ts` |
 | 限流 | `lib/rate-limit.ts`、`db/schema.ts` 的 `rate_limits`、`drizzle/migrations/0004_rate_limits.sql` |
+| MCP / 外部 API 鉴权设计 | `docs/adr/2026-06-23-mcp-api-token-auth.md`、`db/schema.ts` 的 `agent_access_tokens` / `agent_access_audit_logs`、`drizzle/migrations/0005_agent_access_tokens.sql` |
 | 课程正文读取 / 导入 | `lib/content.ts`、`app/courses/[slug]/page.tsx`、`app/courses/page.tsx`、`scripts/import-course-section.mjs` |
 | 论坛 v1 | `lib/forum.ts`、`lib/forum-types.ts`、`app/forum/`、`components/forum/`、`app/admin/forum-tags/`、`components/admin/forum-tag-admin-panel.tsx`、`drizzle/migrations/0002_seed_forum_tags.sql`、`drizzle/migrations/0003_forum_tag_visibility.sql` |
 
@@ -41,6 +42,7 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 
 - 付费正文从 D1 `course_sections.body_md` 读取，`visibility = locked` 时服务端检查 session + 有效 `entitlements.scope`；`/courses` 读元数据但不查 `body_md`。
 - 当前正式学员通行证 scope 为 `course:full`；它解锁课程、论坛、MCP 与外部 API 的学员能力。能力层同时预留 `forum:access`、`mcp:read` / `mcp:write`、`api:read` / `api:write`，用于后续更细授权，但不能让既有 `course:full` 学员掉权限。
+- MCP / 外部 API 规划使用用户授权的 Agent 访问令牌：token scope 只是调用上限，实际权限仍实时取用户有效 entitlement / capability；令牌只存 peppered hash，审计日志只存元数据。
 - 论坛 v1：`lib/forum.ts` 负责 session、profiles、entitlement、D1 读写、slug、发帖/回帖限流、作者/管理员授权、软删除与恢复；`/forum` 顶栏入口已恢复。
 - 论坛默认标签 migration 已在远端 D1 执行：`homework` / `ask` / `share` / `pitfall`。管理员可在 `/admin/forum-tags` 新增、改名、隐藏/恢复标签；学员只能选择未隐藏标签。
 - 远端论坛已有发布公告首帖；受限论坛正文仍不做仓库备份。
@@ -67,15 +69,17 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 - 前端缺口：首页 / 顶栏 / 课程 Gate 指向 `/courses/enroll`，但报名正文未写（`ENROLL.available=false`，点进去是「待上传」占位）；课程介绍页（非文章 landing）仍待做。
 - 后续仍可加 Turnstile、人机验证、管理员用户列表与更细审计。
 - 卡密后台仍缺单张卡查询、使用记录详情与撤销/调整已发权益。
+- MCP / 外部 API 还缺令牌创建 / 列表 / 撤销 UI、Bearer token 校验 helper、MCP server adapter 与窄 REST adapter。
 
 ## 下一步建议
 
 优先级从高到低：
 
 1. 由管理员补作业分享引导 / 提问模板，并做学员 / 管理员两视角 smoke test。
-2. 为 MCP / 外部 API 做 token 表、撤销、审计日志和读写接口适配器设计，确保 `course:full` 学员可读课程、读论坛并通过服务层发帖。
-3. 补管理员卡密使用记录详情，支持排查某批次兑换情况。
-4. 课程内容操作下一层便利：可选 frontmatter 解析、批量导入、导入前预览 diff。
+2. 实现 MCP / 外部 API 的令牌创建、撤销、Bearer 校验 helper 与审计写入。
+3. 接 MCP server adapter，先开放读课程 / 读论坛，再通过 `lib/forum.ts` 开放论坛发帖。
+4. 补管理员卡密使用记录详情，支持排查某批次兑换情况。
+5. 课程内容操作下一层便利：可选 frontmatter 解析、批量导入、导入前预览 diff。
 
 ## 验证命令
 
@@ -86,6 +90,7 @@ gh run list --repo mmm8091/makeshift-dev --limit 3
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from user;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from forum_posts; select slug,name,hidden_at from forum_tags;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select namespace,count(*) from rate_limits group by namespace;"
+pnpm wrangler d1 execute makeshift-dev --remote --command "select name from sqlite_master where type='table' and name in ('agent_access_tokens','agent_access_audit_logs');"
 ```
 
 ## 交接提醒
