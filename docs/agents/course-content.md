@@ -41,6 +41,34 @@ pnpm course:import -- --remote --file "课程文档/1.1：意图驱动开发.md"
 
 The script upserts `course_sections` by slug and writes the Markdown into `body_md`.
 
+## Agent Editing Locked Course Text
+
+When the user asks an Agent to change a locked course article, use this flow:
+
+1. Locate the source Markdown under ignored `课程文档/`.
+2. Make the smallest text edit in that local source file.
+3. Do not quote or summarize more paid content than the user already provided.
+4. Run the import script for that one slug with `--remote`.
+5. Verify the change with a targeted D1 query, such as `instr(body_md, '短语')`, not by printing the full article body.
+6. Leave `课程文档/` uncommitted; it is intentionally ignored.
+
+Example:
+
+```powershell
+pnpm course:import -- --remote --file "课程文档/1.3：提问，以及向AI提问.md" `
+  --slug 1-3-asking-questions `
+  --title "1.3：提问，以及向AI提问" `
+  --summary "把问题、上下文和验证方式说清楚，让提问成为可训练的开发能力" `
+  --order 4 `
+  --visibility locked `
+  --required-entitlement course:full
+
+pnpm wrangler d1 execute makeshift-dev --remote --command `
+  "select slug, instr(body_md, '目标短语') as phrase_pos from course_sections where slug = '1-3-asking-questions';"
+```
+
+If the local ignored source is missing, do not reconstruct a locked article from production output or ask the MCP reader to dump it into the repo. Ask the owner for the source file or make a deliberately tiny D1-only patch only when the requested change is exact and unambiguous.
+
 Before importing, the script runs the same Markdown checks as:
 
 ```powershell
