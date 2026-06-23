@@ -11,6 +11,21 @@
 
 ## [未发布]
 
+## [0.3.2] - 2026-06-23
+
+Agent 接入验收收尾版：把论坛和用户中心的等待体验补齐，并把学员 / Agent 通过 MCP 连接网站、读取课程、发论坛帖的测试流程写成文档。
+
+### 体验
+
+- 论坛路由新增加载页，复用课程文章的“骚话等待 + 盖章动画”体验。
+- 用户中心路由新增加载页，慢请求时不再只露出空白等待。
+- `QuoteLoader` 增加 `persistForArticle` 开关：课程文章仍保留同一句骚话进入题记的交接逻辑，论坛 / 用户中心只复用等待画面，不污染文章题记状态。
+
+### 文档
+
+- 新增 Agent MCP 连接与测试文档，说明学员如何创建 token、在 Codex 里配置 Streamable HTTP MCP、用工具读课程 / 读论坛 / dry run / 发帖。
+- 更新文档索引、后台状态与 Agent Access 技术方案，记录当前对外 MCP 工具主名为下划线格式，并保留点号旧名兼容。
+
 ## [0.3.1] - 2026-06-23
 
 ### 修复
@@ -129,6 +144,9 @@ Agent 接入首版：让学员可以把自己的课程和论坛权限授权给 A
 - ADR：D1 与账号基础、暖纸墨绿 UI 方向、Cloudflare 自定义域入口、DirectMail 邮箱 OTP、论坛与 Agent 接入模型。
 - 产品技术方案、插画美术规范、论坛 v1 实现规格，以及协作 / 触发标签 / 领域等 agent 工作规则。
 
-[未发布]: https://github.com/mmm8091/makeshift-dev/compare/v0.2.0...HEAD
+[未发布]: https://github.com/mmm8091/makeshift-dev/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/mmm8091/makeshift-dev/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/mmm8091/makeshift-dev/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/mmm8091/makeshift-dev/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mmm8091/makeshift-dev/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mmm8091/makeshift-dev/releases/tag/v0.1.0

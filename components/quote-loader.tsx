@@ -58,12 +58,17 @@ export function QuoteLoaderView({
 }
 
 /**
- * 文章加载页：随机抽一句骚话陪读者等待，并把这句和出现时刻暂存到
+ * 路由加载页：随机抽一句骚话陪读者等待。课程文章默认把这句和出现时刻暂存到
  * sessionStorage，让随后进入的文章取回同一句、并据时间戳补足最短展示时长。
+ * 论坛/用户中心等普通路由可关闭暂存，只复用等待画面。
  *
  * 首屏不带文字（避免服务端/客户端随机不一致的水合警告），挂载后淡入。
  */
-export function QuoteLoader() {
+export function QuoteLoader({
+  persistForArticle = true,
+}: {
+  persistForArticle?: boolean;
+}) {
   const [quote, setQuote] = useState<Quote | null>(null);
   const chosen = useRef<Quote | null>(null);
 
@@ -74,14 +79,16 @@ export function QuoteLoader() {
     }
     const q = drawQuote();
     chosen.current = q;
-    try {
-      sessionStorage.setItem(QUOTE_HANDOFF_KEY, JSON.stringify(q));
-      sessionStorage.setItem(QUOTE_STARTED_KEY, String(Date.now()));
-    } catch {
-      // sessionStorage 不可用（隐私模式等）时静默降级：题记会自行随机一句。
+    if (persistForArticle) {
+      try {
+        sessionStorage.setItem(QUOTE_HANDOFF_KEY, JSON.stringify(q));
+        sessionStorage.setItem(QUOTE_STARTED_KEY, String(Date.now()));
+      } catch {
+        // sessionStorage 不可用（隐私模式等）时静默降级：题记会自行随机一句。
+      }
     }
     setQuote(q);
-  }, []);
+  }, [persistForArticle]);
 
   return <QuoteLoaderView quote={quote} visible={quote !== null} />;
 }

@@ -92,30 +92,32 @@ Token scope 是上限，用户实时 entitlement 是底线。
 
 本版一次性做完整首版工具，不区分“只读先行”。
 
+当前对外主工具名使用下划线格式，以便 Codex 等客户端稳定加载。旧点号工具名保留为直接 HTTP 调用兼容别名，不作为新文档和新客户端配置的推荐名称。
+
 ### 基础工具
 
-- `health.check`
+- `health_check`
   - 不需要 token。
   - 返回服务状态、版本、时间。
-- `auth.whoami`
+- `auth_whoami`
   - 需要 `mcp:read`。
   - 返回当前 token 所属用户、token 前缀、granted scopes、是否管理员。
-- `entitlements.inspect_self`
+- `entitlements_inspect_self`
   - 需要 `mcp:read`。
   - 返回当前用户有效 entitlement scopes，不返回任何私密正文。
-- `rate_limit.inspect_self`
+- `rate_limit_inspect_self`
   - 需要 `mcp:read`。
   - 返回当前 token / user 的 MCP 限流摘要。
 
 ### 课程工具
 
-- `course.list_metadata`
+- `course_list_metadata`
   - 需要 `mcp:read`。
   - 一次返回全部已发布课程章节表。
   - 只返回 slug、标题、摘要、公开 / 锁定状态、顺序、父级 slug、所需 entitlement。
   - 不查询、不返回 `body_md`。
 
-- `course.read_section`
+- `course_read_section`
   - 需要 `mcp:read`。
   - 输入：`slug`。
   - 输出：该章节元数据和正文 Markdown。
@@ -124,31 +126,31 @@ Token scope 是上限，用户实时 entitlement 是底线。
 
 ### 论坛工具
 
-- `forum.list_posts`
+- `forum_list_posts`
   - 需要 `mcp:read`。
   - 输入：`tag?`、`cursor?`、`limit?`。
   - 输出分页帖子列表，与 UI 列表同样只给摘要，不泄漏完整正文。
   - 复用 `lib/forum.ts` 读取逻辑。
 
-- `forum.read_post`
+- `forum_read_post`
   - 需要 `mcp:read`。
   - 输入：`slug`。
   - 输出帖子正文、标签、评论、作者公开资料。
   - 复用 `lib/forum.ts`，尊重隐藏 / 删除 / 作者 / 管理员可见性。
 
-- `forum.dry_run_create_post`
+- `forum_dry_run_create_post`
   - 需要 `mcp:write`。
   - 输入：标题、正文 Markdown、标签 slug。
   - 只做校验和权限检查，不落库。
   - 用于 Agent 在真实发帖前检查字段错误和权限。
 
-- `forum.create_post`
+- `forum_create_post`
   - 需要 `mcp:write`。
   - 输入：标题、正文 Markdown、标签 slug。
   - 真实写入必须调用 `lib/forum.ts` 的发帖服务，不另写 D1 直连。
   - 复用论坛发帖限流、标签校验、slug 生成和作者归属。
 
-- `forum.create_comment`
+- `forum_create_comment`
   - 需要 `mcp:write`。
   - 输入：`postId` 或可解析的帖子标识、正文 Markdown。
   - 真实写入必须调用 `lib/forum.ts` 的回帖服务。
@@ -163,13 +165,13 @@ Token scope 是上限，用户实时 entitlement 是底线。
 
 本版可做：
 
-- `admin.audit.tail`
+- `admin_audit_tail`
   - 需要 `mcp:read` + admin。
   - 返回最近审计日志元数据。
-- `admin.token.inspect`
+- `admin_token_inspect`
   - 需要 `mcp:read` + admin。
   - 按 token 前缀或 id 查看元数据，不返回明文或 hash。
-- `admin.user.lookup`
+- `admin_user_lookup`
   - 需要 `mcp:read` + admin。
   - 用于排障查询用户公开 / 管理元数据，不返回私密内容。
 
@@ -187,7 +189,7 @@ Authorization: Bearer msd_...
 处理流程：
 
 1. 解析工具名和参数。
-2. 对除 `health.check` 外的工具校验 Bearer token。
+2. 对除 `health_check` 外的工具校验 Bearer token。
 3. 根据工具声明检查 required scope。
 4. 执行工具函数。
 5. 记录审计元数据。
@@ -201,8 +203,8 @@ Authorization: Bearer msd_...
 
 控制策略：
 
-- `course.list_metadata` 一次返回全部课程章节表，但不碰正文。
-- `course.read_section` 按 slug 单篇读取，不提供全课程正文批量读取。
+- `course_list_metadata` 一次返回全部课程章节表，但不碰正文。
+- `course_read_section` 按 slug 单篇读取，不提供全课程正文批量读取。
 - 所有列表工具必须分页。
 - MCP 写工具接入现有论坛限流。
 - Token 校验按 hash 查询；`token_hash` 已有唯一索引。
@@ -228,8 +230,8 @@ Authorization: Bearer msd_...
 - 创建 token 后只显示一次明文；列表和审计不含明文。
 - revoked / expired token 不能调用任何受保护工具。
 - 用户失去 `course:full` 后，已有 token 立即失去对应 MCP 能力。
-- `course.list_metadata` 不返回正文。
-- `course.read_section` 无权限时不返回锁定课程正文。
-- `forum.create_post` 和 `forum.create_comment` 经由 `lib/forum.ts`，并触发既有限流。
+- `course_list_metadata` 不返回正文。
+- `course_read_section` 无权限时不返回锁定课程正文。
+- `forum_create_post` 和 `forum_create_comment` 经由 `lib/forum.ts`，并触发既有限流。
 - 审计日志不包含课程正文、论坛正文、请求 / 响应 body、原始 IP、完整 UA。
 - 管理员工具只允许 admin profile 使用。

@@ -35,6 +35,7 @@
 | [collaboration.md](agents/collaboration.md) | 协作约定 |
 | [frontend.md](agents/frontend.md) | 前端与内容的已落地约定。**【前端必读】** |
 | [course-content.md](agents/course-content.md) | 课程内容导入与公开/私密边界。**【内容必读】** |
+| [mcp-agent-access.md](agents/mcp-agent-access.md) | 学员 / Agent 通过 MCP 连接网站、读课程、读论坛、发帖和测试的操作文档。**【MCP 必读】** |
 | [backend-status.md](agents/backend-status.md) | 后端 / 部署当前状态、生产入口、验证命令、已知缺口（**活文档**，随版本更新） |
 
 ## 归档（[archive/](archive/)）
