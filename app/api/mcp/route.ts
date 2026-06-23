@@ -55,74 +55,74 @@ type ToolDefinition = {
 };
 
 const TOOL_DEFINITIONS: ToolDefinition[] = [
-  { name: "health.check", description: "检查 MCP 入口健康状态" },
+  { name: "health_check", description: "检查 MCP 入口健康状态" },
   {
-    name: "auth.whoami",
+    name: "auth_whoami",
     description: "查看当前 Agent 访问令牌对应的用户与授权 scope",
     requiredScope: "mcp:read",
   },
   {
-    name: "entitlements.inspect_self",
+    name: "entitlements_inspect_self",
     description: "查看当前用户有效 entitlement scopes",
     requiredScope: "mcp:read",
   },
   {
-    name: "rate_limit.inspect_self",
+    name: "rate_limit_inspect_self",
     description: "查看 MCP 限流策略摘要",
     requiredScope: "mcp:read",
   },
   {
-    name: "course.list_metadata",
+    name: "course_list_metadata",
     description: "一次返回全部已发布课程章节表，不返回正文",
     requiredScope: "mcp:read",
   },
   {
-    name: "course.read_section",
+    name: "course_read_section",
     description: "按 slug 读取一篇课程文章 Markdown",
     requiredScope: "mcp:read",
   },
   {
-    name: "forum.list_posts",
+    name: "forum_list_posts",
     description: "分页读取论坛帖子列表摘要",
     requiredScope: "mcp:read",
   },
   {
-    name: "forum.read_post",
+    name: "forum_read_post",
     description: "按 slug 读取论坛帖子详情和评论",
     requiredScope: "mcp:read",
   },
   {
-    name: "forum.dry_run_create_post",
+    name: "forum_dry_run_create_post",
     description: "校验发帖参数和权限，不落库",
     requiredScope: "mcp:write",
     write: true,
   },
   {
-    name: "forum.create_post",
+    name: "forum_create_post",
     description: "创建论坛帖子，复用论坛服务层",
     requiredScope: "mcp:write",
     write: true,
   },
   {
-    name: "forum.create_comment",
+    name: "forum_create_comment",
     description: "创建论坛回复，复用论坛服务层",
     requiredScope: "mcp:write",
     write: true,
   },
   {
-    name: "admin.audit.tail",
+    name: "admin_audit_tail",
     description: "管理员查看最近 Agent 访问审计元数据",
     requiredScope: "mcp:read",
     admin: true,
   },
   {
-    name: "admin.token.inspect",
+    name: "admin_token_inspect",
     description: "管理员查看 token 元数据，不返回明文或 hash",
     requiredScope: "mcp:read",
     admin: true,
   },
   {
-    name: "admin.user.lookup",
+    name: "admin_user_lookup",
     description: "管理员排障查询用户元数据和有效 entitlement",
     requiredScope: "mcp:read",
     admin: true,
@@ -130,6 +130,22 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
 ];
 
 const TOOLS = new Map(TOOL_DEFINITIONS.map((tool) => [tool.name, tool]));
+const LEGACY_TOOL_NAMES = new Map<string, string>([
+  ["health.check", "health_check"],
+  ["auth.whoami", "auth_whoami"],
+  ["entitlements.inspect_self", "entitlements_inspect_self"],
+  ["rate_limit.inspect_self", "rate_limit_inspect_self"],
+  ["course.list_metadata", "course_list_metadata"],
+  ["course.read_section", "course_read_section"],
+  ["forum.list_posts", "forum_list_posts"],
+  ["forum.read_post", "forum_read_post"],
+  ["forum.dry_run_create_post", "forum_dry_run_create_post"],
+  ["forum.create_post", "forum_create_post"],
+  ["forum.create_comment", "forum_create_comment"],
+  ["admin.audit.tail", "admin_audit_tail"],
+  ["admin.token.inspect", "admin_token_inspect"],
+  ["admin.user.lookup", "admin_user_lookup"],
+]);
 
 class ToolError extends Error {
   status: number;
@@ -180,7 +196,8 @@ export async function POST(request: Request) {
     return jsonOrDirectError(rpc, "未知 MCP 方法或工具调用格式", 400);
   }
 
-  const tool = TOOLS.get(parsed.name);
+  const toolName = LEGACY_TOOL_NAMES.get(parsed.name) ?? parsed.name;
+  const tool = TOOLS.get(toolName);
   if (!tool) {
     return jsonOrDirectError(rpc, `未知工具：${parsed.name}`, 404);
   }
@@ -188,7 +205,7 @@ export async function POST(request: Request) {
   const ip = getClientIp(request);
   const userAgent = request.headers.get("user-agent") || "";
 
-  if (tool.name === "health.check") {
+  if (tool.name === "health_check") {
     const result = await runTool({ env, tool, args: parsed.args, ip, userAgent });
     return jsonOrDirectResult(rpc, result);
   }
@@ -298,14 +315,14 @@ async function runTool({
   userAgent: string;
 }) {
   switch (tool.name) {
-    case "health.check":
+    case "health_check":
       return {
         ok: true,
         service: "makeshift-dev-agent-access",
         version: "0.3.0",
         now: new Date().toISOString(),
       };
-    case "auth.whoami":
+    case "auth_whoami":
       assertContext(context);
       return {
         userId: context.userId,
@@ -315,10 +332,10 @@ async function runTool({
         grantedScopes: context.grantedScopes,
         isAdmin: context.isAdmin,
       };
-    case "entitlements.inspect_self":
+    case "entitlements_inspect_self":
       assertContext(context);
       return { scopes: context.activeEntitlementScopes };
-    case "rate_limit.inspect_self":
+    case "rate_limit_inspect_self":
       assertContext(context);
       return {
         tokenPrefix: context.tokenPrefix,
@@ -329,12 +346,12 @@ async function runTool({
           { namespace: "mcp:write:user", limit: 40, windowSeconds: 600 },
         ],
       };
-    case "course.list_metadata":
+    case "course_list_metadata":
       return listCourseMetadata(env);
-    case "course.read_section":
+    case "course_read_section":
       assertContext(context);
       return readCourseSection(env, context.userId, getString(args, "slug"));
-    case "forum.list_posts":
+    case "forum_list_posts":
       assertContext(context);
       return listPosts({
         env,
@@ -343,38 +360,38 @@ async function runTool({
         cursor: getOptionalString(args, "cursor") ?? undefined,
         limit: getOptionalNumber(args, "limit") ?? undefined,
       });
-    case "forum.read_post":
+    case "forum_read_post":
       assertContext(context);
       return readForumPost(env, context, getString(args, "slug"));
-    case "forum.dry_run_create_post":
+    case "forum_dry_run_create_post":
       assertContext(context);
       return dryRunCreatePost({
         env,
         viewer: forumViewer(context),
         input: getPostInput(args),
       });
-    case "forum.create_post":
+    case "forum_create_post":
       assertContext(context);
       return createPost({
         env,
         viewer: forumViewer(context),
         input: getPostInput(args),
       });
-    case "forum.create_comment":
+    case "forum_create_comment":
       assertContext(context);
       return createForumComment(env, context, args);
-    case "admin.audit.tail":
+    case "admin_audit_tail":
       return listAgentAccessAuditTail({
         env,
         limit: getOptionalNumber(args, "limit") ?? 50,
       });
-    case "admin.token.inspect":
+    case "admin_token_inspect":
       return inspectAgentAccessToken({
         env,
         id: getOptionalString(args, "id") ?? undefined,
         tokenPrefix: getOptionalString(args, "tokenPrefix") ?? undefined,
       });
-    case "admin.user.lookup":
+    case "admin_user_lookup":
       return lookupUser(env, getString(args, "query"));
     default:
       throw new ToolError(`未知工具：${tool.name}`, 404);
