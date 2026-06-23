@@ -57,7 +57,8 @@ export * from "@/lib/forum-types";
 
 type ServiceArgs = {
   env: CloudflareEnv;
-  requestHeaders: Headers;
+  requestHeaders?: Headers;
+  viewer?: Viewer;
 };
 
 type ForumPostRow = typeof forumPosts.$inferSelect;
@@ -360,6 +361,9 @@ async function insertPostTags(
  * 论坛能力可由独立 `forum:access` 或现有课程通行证 `course:full` 解锁。
  */
 export async function resolveViewer(args: ServiceArgs): Promise<Viewer | null> {
+  if (args.viewer) return args.viewer;
+  if (!args.requestHeaders) return null;
+
   const session = await createAuth(args.env).api.getSession({
     headers: args.requestHeaders,
   });
@@ -761,6 +765,33 @@ export async function createPost(
   await insertPostTags(db, id, tagValidation.tagIds);
 
   return { ok: true, slug };
+}
+
+export async function dryRunCreatePost(
+  args: ServiceArgs & {
+    input: { title: string; bodyMd: string; tagSlugs: string[] };
+  },
+): Promise<WriteResult> {
+  const viewer = await resolveViewer(args);
+  if (!viewer?.hasForumAccess) {
+    return { ok: false, reason: "forbidden", message: "需要报名解锁后才能发帖" };
+  }
+
+  const db = getDb(args.env);
+  const fieldErrors: NonNullable<
+    Extract<WriteResult, { ok: false }>["fieldErrors"]
+  > = {};
+  const titleErr = validateTitle(args.input.title);
+  if (titleErr) fieldErrors.title = titleErr;
+  const bodyErr = validateBody(args.input.bodyMd);
+  if (bodyErr) fieldErrors.bodyMd = bodyErr;
+  const tagValidation = await validateTagSlugs(db, args.input.tagSlugs);
+  if (tagValidation.error) fieldErrors.tagSlugs = tagValidation.error;
+  if (Object.keys(fieldErrors).length > 0) {
+    return { ok: false, reason: "invalid", fieldErrors };
+  }
+
+  return { ok: true };
 }
 
 export async function addComment(

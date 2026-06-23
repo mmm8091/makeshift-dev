@@ -10,6 +10,7 @@
 | [草台编子识字班产品技术方案.md](草台编子识字班产品技术方案.md) | 产品与技术总方案。**【必读】** |
 | [草台编子识字班插画美术规范.md](草台编子识字班插画美术规范.md) | 木刻美术规范。**【插画必读】** |
 | [草台编子识字班论坛v1实现规格.md](草台编子识字班论坛v1实现规格.md) | 论坛 v1 实现规格。**【论坛必读】** |
+| [草台编子识字班-agent-access-v0.3技术方案.md](草台编子识字班-agent-access-v0.3技术方案.md) | Agent 访问令牌与 MCP 首版实现方案。**【MCP 必读】** |
 
 ## 架构决策（ADR · [adr/](adr/)）
 
@@ -22,6 +23,7 @@
 | [2026-06-21 Cloudflare 自定义域入口](adr/2026-06-21-cloudflare-custom-domain-entrypoint.md) | 部署入口 |
 | [2026-06-21 DirectMail 邮箱 OTP](adr/2026-06-21-directmail-email-otp-auth.md) | 邮件发送决策 |
 | [2026-06-23 论坛与 Agent 接入模型](adr/2026-06-23-forum-and-agent-access-model.md) | 单一服务层 + 卡密门禁 + MCP。**【论坛必读】** |
+| [2026-06-23 MCP / 外部 API token 鉴权](adr/2026-06-23-mcp-api-token-auth.md) | 用户授权令牌 + 实时 entitlement 门禁。**【MCP 必读】** |
 
 ## Agent 工作规则（[agents/](agents/)）
 

@@ -44,3 +44,22 @@ export async function hasActiveEntitlement(
 
   return Boolean(row);
 }
+
+export async function listActiveEntitlementScopes(
+  db: Db,
+  userId: string,
+  now = new Date(),
+): Promise<string[]> {
+  const rows = await db
+    .select({ scope: entitlements.scope })
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, userId),
+        lte(entitlements.startsAt, now),
+        or(isNull(entitlements.expiresAt), gt(entitlements.expiresAt, now)),
+      ),
+    );
+
+  return rows.map((row) => row.scope);
+}

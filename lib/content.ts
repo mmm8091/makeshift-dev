@@ -1,15 +1,18 @@
 import prefaceMarkdown from "@/content/courses/preface.md";
 import willMarkdown from "@/content/courses/01-will.md";
-import { and, asc, eq, gt, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { courseSections, entitlements } from "@/db/schema";
+import { courseSections } from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import {
   DEFAULT_COURSE_ENTITLEMENT,
   inferParentSlugFromTitle,
   type CourseEntry,
 } from "@/lib/courses";
-import { hasActiveEntitlement } from "@/lib/entitlements";
+import {
+  hasActiveEntitlement,
+  listActiveEntitlementScopes,
+} from "@/lib/entitlements";
 
 /**
  * 公开课程正文的读取层（seam）。
@@ -138,6 +141,43 @@ export async function getDbCourseMarkdown({
   return entitled ? section.bodyMd : null;
 }
 
+/** 服务端按已鉴权 userId 读取 D1 正文；供 MCP / API token adapter 复用。 */
+export async function getDbCourseMarkdownForUser({
+  slug,
+  env,
+  userId,
+  additionalAllowedScopes = [],
+}: {
+  slug: string;
+  env: CloudflareEnv;
+  userId: string | null;
+  additionalAllowedScopes?: readonly string[];
+}): Promise<string | null> {
+  if (!isSafeSlug(slug)) return null;
+
+  const db = getDb(env);
+  const [section] = await db
+    .select({
+      bodyMd: courseSections.bodyMd,
+      visibility: courseSections.visibility,
+      requiredEntitlement: courseSections.requiredEntitlement,
+    })
+    .from(courseSections)
+    .where(and(eq(courseSections.slug, slug), eq(courseSections.status, "published")))
+    .limit(1);
+
+  if (!section?.bodyMd) return null;
+  if (section.visibility === "public") return section.bodyMd;
+  if (!userId) return null;
+
+  const scope = section.requiredEntitlement || DEFAULT_COURSE_ENTITLEMENT;
+  const entitled = await hasActiveEntitlement(db, userId, [
+    scope,
+    ...additionalAllowedScopes,
+  ]);
+  return entitled ? section.bodyMd : null;
+}
+
 /** 当前登录用户拥有的有效权益 scope；只返回 scope，不碰课程正文。 */
 export async function getActiveEntitlementScopes({
   env,
@@ -151,16 +191,5 @@ export async function getActiveEntitlementScopes({
   });
   if (!session) return [];
 
-  const rows = await getDb(env)
-    .select({ scope: entitlements.scope })
-    .from(entitlements)
-    .where(
-      and(
-        eq(entitlements.userId, session.user.id),
-        lte(entitlements.startsAt, new Date()),
-        or(isNull(entitlements.expiresAt), gt(entitlements.expiresAt, new Date())),
-      ),
-    );
-
-  return rows.map((row) => row.scope);
+  return listActiveEntitlementScopes(getDb(env), session.user.id);
 }

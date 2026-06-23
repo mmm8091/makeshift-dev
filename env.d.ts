@@ -10,4 +10,5 @@ interface CloudflareEnv {
   ALIYUN_DIRECTMAIL_REGION_ID?: string;
   ALIYUN_DIRECTMAIL_ENDPOINT?: string;
   REDEEM_CODE_PEPPER?: string;
+  AGENT_ACCESS_TOKEN_PEPPER?: string;
 }

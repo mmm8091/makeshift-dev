@@ -10,3 +10,4 @@ ALIYUN_DIRECTMAIL_FROM_ALIAS=草台编子识字班
 ALIYUN_DIRECTMAIL_REGION_ID=cn-hangzhou
 ALIYUN_DIRECTMAIL_ENDPOINT=https://dm.aliyuncs.com/
 REDEEM_CODE_PEPPER=replace-with-another-long-random-secret
+AGENT_ACCESS_TOKEN_PEPPER=replace-with-a-third-long-random-secret

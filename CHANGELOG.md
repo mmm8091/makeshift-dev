@@ -17,6 +17,9 @@
 - 卡密后台新增批次列表，支持按批次 + scope 禁用剩余卡密。
 - 权益能力层预留 `forum:access`、`mcp:read` / `mcp:write`、`api:read` / `api:write` 独立 scope，同时明确 `course:full` 是学员通行证，可覆盖课程、论坛、MCP 与外部 API 能力。
 - 新增 MCP / 外部 API 鉴权 ADR 与 D1 表设计：用户授权 Agent 访问令牌、token hash 存储、撤销 / 过期字段与元数据审计日志。
+- 新增 Agent 访问令牌服务层与 `/api/me/agent-tokens` 后端接口：支持创建、列表、撤销，token 明文只在创建时返回一次。
+- 新增 `/api/mcp` 工具入口：支持课程章节表、单篇课程读取、论坛列表 / 详情、论坛发帖 / 回帖、基础自检与管理员排障工具，所有受保护工具均走 Bearer token + 实时 entitlement 门禁。
+- MCP 论坛写入复用 `lib/forum.ts`，课程读取保持“章节表一次返回、正文按 slug 单篇读取”，不提供全课程正文批量导出。
 - DirectMail 日志收敛：成功发送不再逐封打日志，失败日志只保留错误码、requestId、状态码等排障字段。
 
 ## [0.2.0] - 2026-06-23
