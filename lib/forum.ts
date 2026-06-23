@@ -121,10 +121,6 @@ function canEdit(viewer: Viewer, authorId: string): boolean {
   return viewer.role === "admin" || viewer.userId === authorId;
 }
 
-function removedExcerpt(status: ContentStatus): string {
-  return status === "hidden" ? "这个内容已被隐藏" : "这个内容已被删除";
-}
-
 function sortTags(tags: Tag[]): Tag[] {
   return [...tags].sort((a, b) => {
     const ai = DEFAULT_TAG_ORDER.get(a.slug) ?? Number.MAX_SAFE_INTEGER;
@@ -563,20 +559,18 @@ export async function listPosts(
     })
     .from(forumPosts)
     .leftJoin(profiles, eq(forumPosts.authorId, profiles.userId))
+    .where(eq(forumPosts.status, "published"))
     .orderBy(desc(forumPosts.pinnedAt), desc(forumPosts.createdAt));
 
-  const visibleRows = rows.filter((row) =>
-    canSeeStatus(viewer, row.status, row.authorId),
-  );
-  const postIds = visibleRows.map((row) => row.id);
+  const postIds = rows.map((row) => row.id);
   const tagsByPost = await loadTagsForPosts(db, postIds);
   const commentCounts = await loadPublishedCommentCounts(db, postIds);
 
   const filteredRows = tag
-    ? visibleRows.filter((row) =>
+    ? rows.filter((row) =>
         (tagsByPost.get(row.id) ?? []).some((postTag) => postTag.slug === tag?.slug),
       )
-    : visibleRows;
+    : rows;
 
   const startIndex =
     args.cursor && isSafeCursor(args.cursor)
@@ -600,8 +594,7 @@ export async function listPosts(
     pinned: row.pinnedAt !== null,
     createdAt: toMs(row.createdAt),
     commentCount: commentCounts.get(row.id) ?? 0,
-    excerpt:
-      row.status === "published" ? excerptOf(row.bodyMd) : removedExcerpt(row.status),
+    excerpt: excerptOf(row.bodyMd),
   }));
 
   return { posts, nextCursor, tag, viewer };

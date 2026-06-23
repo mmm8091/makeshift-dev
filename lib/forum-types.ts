@@ -66,7 +66,7 @@ export type PostSummary = {
   title: string;
   author: Author;
   tags: Tag[];
-  /** 普通用户只会拿到 published；管理员视图可见 hidden/deleted 以便处理。 */
+  /** 主列表只返回 published；hidden/deleted 仅保留给详情页直链与未来管理视图。 */
   status: ContentStatus;
   pinned: boolean;
   createdAt: number; // epoch ms
