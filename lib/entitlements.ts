@@ -7,14 +7,18 @@ export const ENTITLEMENT_SCOPES = {
   courseFull: DEFAULT_COURSE_ENTITLEMENT,
   forumAccess: "forum:access",
   mcpRead: "mcp:read",
+  mcpWrite: "mcp:write",
   apiRead: "api:read",
+  apiWrite: "api:write",
 } as const;
 
 export const CAPABILITY_SCOPES = {
   course: [ENTITLEMENT_SCOPES.courseFull],
   forum: [ENTITLEMENT_SCOPES.forumAccess, ENTITLEMENT_SCOPES.courseFull],
   mcpRead: [ENTITLEMENT_SCOPES.mcpRead, ENTITLEMENT_SCOPES.courseFull],
-  apiRead: [ENTITLEMENT_SCOPES.apiRead],
+  mcpWrite: [ENTITLEMENT_SCOPES.mcpWrite, ENTITLEMENT_SCOPES.courseFull],
+  apiRead: [ENTITLEMENT_SCOPES.apiRead, ENTITLEMENT_SCOPES.courseFull],
+  apiWrite: [ENTITLEMENT_SCOPES.apiWrite, ENTITLEMENT_SCOPES.courseFull],
 } as const;
 
 export async function hasActiveEntitlement(

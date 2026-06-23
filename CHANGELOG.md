@@ -15,7 +15,7 @@
 
 - 新增 D1 `rate_limits` 表与共享限流 helper，覆盖认证 POST、验证码、兑换、资料更新、论坛写操作和卡密后台。
 - 卡密后台新增批次列表，支持按批次 + scope 禁用剩余卡密。
-- 权益能力层预留 `forum:access`、`mcp:read`、`api:read` 独立 scope，同时兼容 `course:full` 解锁论坛与 MCP 读取。
+- 权益能力层预留 `forum:access`、`mcp:read` / `mcp:write`、`api:read` / `api:write` 独立 scope，同时明确 `course:full` 是学员通行证，可覆盖课程、论坛、MCP 与外部 API 能力。
 - DirectMail 日志收敛：成功发送不再逐封打日志，失败日志只保留错误码、requestId、状态码等排障字段。
 
 ## [0.2.0] - 2026-06-23

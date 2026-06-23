@@ -17,9 +17,9 @@
 
 2. **所有论坛能力收进单一服务层 `lib/forum.ts`**。每个函数都接收一个"已鉴权的访问者上下文"，**session 校验、entitlement 判定、作者/管理员授权、限流、软删除只活在这一层**。UI 现在调它；将来的 MCP server 或对外 REST 调用**同一批函数**。接口形态的决策因此被延后且廉价——只是在服务层之上加一个薄适配器，永远不会出现两套权限逻辑。
 
-3. **entitlement 采用“能力 → scope 列表”的映射**，由服务层持有。`course:full` 继续是当前课程通行证，并兼容解锁论坛与 MCP 读取；同时预留独立 scope：`forum:access`（论坛）、`mcp:read`（MCP 读取）、`api:read`（外部 API 读取）。外部 API 默认不由 `course:full` 自动解锁，避免把站内学习权益误扩成对外集成权限。
+3. **entitlement 采用“能力 → scope 列表”的映射**，由服务层持有。`course:full` 是当前学员通行证：解锁课程、论坛、MCP 与外部 API 的学员能力；同时预留独立 scope：`forum:access`（论坛）、`mcp:read` / `mcp:write`（MCP 读写）、`api:read` / `api:write`（外部 API 读写）。独立 scope 用于后续单独授权、灰度或合作接口，不得让既有 `course:full` 学员掉权限。
 
-4. **MCP server 是一等的、卡密 entitlement 门禁功能**，与课程、论坛同级，规划为后续阶段。它按用户鉴权（scoped token / OAuth），内部调用同一套 `lib/forum.ts` 与课程内容服务层，强制与 UI 完全相同的 entitlement 门禁；**读优先**，写操作（发帖/回帖）二期再开或采用"只起草、人确认再发"，并复用发帖限流。MCP 绝不得成为绕过卡密的后门。
+4. **MCP server 是一等的、卡密 entitlement 门禁功能**，与课程、论坛同级，规划为后续阶段。它按用户鉴权（scoped token / OAuth），内部调用同一套 `lib/forum.ts` 与课程内容服务层，强制与 UI 完全相同的 entitlement 门禁；支持学员通过 MCP 读课程文章、读论坛，并在写入口开放后复用论坛发帖/回帖服务层与限流。MCP 绝不得成为绕过卡密的后门。
 
 5. **对外部系统默认不开放入站公共 API**，只留窄而有意的"缝"：GitHub 以 webhook 入站（消费学员 PR 活动），通知类优先走出站 webhook。逐个、按明确教学/运营理由开 scoped 接口，不预留宽口。
 
@@ -27,8 +27,8 @@
 
 - UI、MCP、潜在 REST 共用同一条鉴权路径，杜绝权限逻辑漂移。
 - 接口形态（MCP / REST）的取舍被延后，且实现成本降为"服务层之上的薄适配器"。
-- 既有 `course:full` 仍然保留“课程社区通行证”的产品语义，可解锁课程、论坛与 MCP 读取；新增 scope 允许后续单独发放论坛、MCP 或外部 API 权益。
-- 外部 API 权益独立为 `api:read`，后续如需写入能力再新增更窄 scope，不把宽口默认挂在课程卡上。
+- 既有 `course:full` 保留“学员通行证”的产品语义，可解锁课程、论坛、MCP 与外部 API；新增窄 scope 只用于更细授权，不用于削弱既有学员权益。
+- MCP/API 的写入能力必须仍走同一服务层的授权、校验、限流与审计；不能另开绕过 UI 权限的写口。
 - 软删除（`status = hidden | deleted`，不硬删）与发帖/回帖限流由服务层统一保证。
 - 用户提交的 Markdown 渲染不得开启原始 HTML（不引入 `rehype-raw` 处理论坛正文），避免存储型 XSS；此约束在论坛 v1 规格中固化。
 - 本 ADR 管辖"论坛访问模型 + entitlement 规则 + 数据库边界 + Agent/外部接口策略"；后续对这些的变更须更新本 ADR（见 `docs/agents/domain.md` 的 ADR 触发清单）。

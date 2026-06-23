@@ -40,7 +40,7 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 要点提醒：
 
 - 付费正文从 D1 `course_sections.body_md` 读取，`visibility = locked` 时服务端检查 session + 有效 `entitlements.scope`；`/courses` 读元数据但不查 `body_md`。
-- 当前正式课程通行证 scope 为 `course:full`；能力层预留 `forum:access`、`mcp:read`、`api:read`。论坛接受 `forum:access` 或 `course:full`，MCP 读取后续接受 `mcp:read` 或 `course:full`，外部 API 默认独立 `api:read`。
+- 当前正式学员通行证 scope 为 `course:full`；它解锁课程、论坛、MCP 与外部 API 的学员能力。能力层同时预留 `forum:access`、`mcp:read` / `mcp:write`、`api:read` / `api:write`，用于后续更细授权，但不能让既有 `course:full` 学员掉权限。
 - 论坛 v1：`lib/forum.ts` 负责 session、profiles、entitlement、D1 读写、slug、发帖/回帖限流、作者/管理员授权、软删除与恢复；`/forum` 顶栏入口已恢复。
 - 论坛默认标签 migration 已在远端 D1 执行：`homework` / `ask` / `share` / `pitfall`。管理员可在 `/admin/forum-tags` 新增、改名、隐藏/恢复标签；学员只能选择未隐藏标签。
 - 远端论坛已有发布公告首帖；受限论坛正文仍不做仓库备份。
@@ -73,7 +73,7 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 优先级从高到低：
 
 1. 由管理员补作业分享引导 / 提问模板，并做学员 / 管理员两视角 smoke test。
-2. 为 MCP / 外部 API 做 token 表、撤销、审计日志和读接口适配器设计。
+2. 为 MCP / 外部 API 做 token 表、撤销、审计日志和读写接口适配器设计，确保 `course:full` 学员可读课程、读论坛并通过服务层发帖。
 3. 补管理员卡密使用记录详情，支持排查某批次兑换情况。
 4. 课程内容操作下一层便利：可选 frontmatter 解析、批量导入、导入前预览 diff。
 
