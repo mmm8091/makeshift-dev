@@ -1,6 +1,6 @@
 {
   "name": "makeshift-dev",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "草台编子识字班 — 平民编程 / AI 编程 / 互助学习课程社区",
   "scripts": {
