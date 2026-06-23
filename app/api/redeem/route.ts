@@ -8,6 +8,7 @@ import {
   hashWithRedeemPepper,
   normalizeRedeemCode,
 } from "@/lib/redeem-codes";
+import { getClientIp, requireRateLimit } from "@/lib/rate-limit";
 
 type RedeemBody = {
   code?: unknown;
@@ -16,6 +17,24 @@ type RedeemBody = {
 export async function POST(request: Request) {
   const context = await getAuthedContext(request);
   if (!context) return Response.json({ error: "请先登录" }, { status: 401 });
+
+  const ipLimit = await requireRateLimit({
+    env: context.env,
+    namespace: "redeem:ip",
+    key: getClientIp(request),
+    limit: 20,
+    windowMs: 10 * 60_000,
+  });
+  if (ipLimit) return ipLimit;
+
+  const userLimit = await requireRateLimit({
+    env: context.env,
+    namespace: "redeem:user",
+    key: context.session.user.id,
+    limit: 12,
+    windowMs: 10 * 60_000,
+  });
+  if (userLimit) return userLimit;
 
   const body = (await request.json().catch(() => null)) as RedeemBody | null;
   if (!body || typeof body.code !== "string") {
@@ -26,6 +45,15 @@ export async function POST(request: Request) {
   if (normalizedCode.length < 12 || normalizedCode.length > 80) {
     return Response.json({ error: "卡密格式不正确" }, { status: 400 });
   }
+
+  const codeLimit = await requireRateLimit({
+    env: context.env,
+    namespace: "redeem:code",
+    key: await hashWithRedeemPepper(context.env, normalizedCode),
+    limit: 8,
+    windowMs: 10 * 60_000,
+  });
+  if (codeLimit) return codeLimit;
 
   const db = getDb(context.env);
   const codeHash = await hashRedeemCode(context.env, normalizedCode);

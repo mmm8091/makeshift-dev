@@ -191,6 +191,26 @@ export const entitlements = sqliteTable(
   ],
 );
 
+export const rateLimits = sqliteTable(
+  "rate_limits",
+  {
+    id: text("id").primaryKey(),
+    namespace: text("namespace").notNull(),
+    keyHash: text("key_hash").notNull(),
+    windowStartedAt: integer("window_started_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+    count: integer("count").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+  },
+  (table) => [
+    index("rate_limits_namespace_idx").on(table.namespace),
+    index("rate_limits_updated_at_idx").on(table.updatedAt),
+  ],
+);
+
 export const courseSections = sqliteTable(
   "course_sections",
   {

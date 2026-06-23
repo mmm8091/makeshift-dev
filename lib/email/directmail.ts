@@ -27,12 +27,17 @@ export class DirectMailConfigError extends Error {
 export class DirectMailSendError extends Error {
   code?: string;
   requestId?: string;
+  status?: number;
 
-  constructor(message: string, options?: { code?: string; requestId?: string }) {
+  constructor(
+    message: string,
+    options?: { code?: string; requestId?: string; status?: number },
+  ) {
     super(message);
     this.name = "DirectMailSendError";
     this.code = options?.code;
     this.requestId = options?.requestId;
+    this.status = options?.status;
   }
 }
 
@@ -69,18 +74,14 @@ export async function sendDirectMail(
 
   if (!response.ok || payload.Code) {
     throw new DirectMailSendError(
-      payload.Message || `DirectMail request failed: ${response.status}`,
+      "DirectMail request failed",
       {
         code: payload.Code,
         requestId: payload.RequestId,
+        status: response.status,
       },
     );
   }
-
-  console.info("DirectMail send succeeded", {
-    requestId: payload.RequestId,
-    status: response.status,
-  });
 }
 
 function getDirectMailConfig(env: CloudflareEnv): DirectMailConfig {

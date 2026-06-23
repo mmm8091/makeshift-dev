@@ -33,16 +33,20 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 | 用户资料 / 用户中心 | `app/me/page.tsx`、`app/api/me/route.ts`、`components/me/user-center.tsx`、`app/api/avatar/qq/[qq]/route.ts` |
 | 顶栏登录态 | `components/header-auth.tsx`、`components/site-header.tsx` |
 | 卡密与权益 | `lib/redeem-codes.ts`、`app/api/admin/redeem-codes/route.ts`、`app/admin/redeem-codes/page.tsx`、`components/admin/redeem-code-admin.tsx`、`app/api/redeem/route.ts` |
+| 限流 | `lib/rate-limit.ts`、`db/schema.ts` 的 `rate_limits`、`drizzle/migrations/0004_rate_limits.sql` |
 | 课程正文读取 / 导入 | `lib/content.ts`、`app/courses/[slug]/page.tsx`、`app/courses/page.tsx`、`scripts/import-course-section.mjs` |
 | 论坛 v1 | `lib/forum.ts`、`lib/forum-types.ts`、`app/forum/`、`components/forum/`、`app/admin/forum-tags/`、`components/admin/forum-tag-admin-panel.tsx`、`drizzle/migrations/0002_seed_forum_tags.sql`、`drizzle/migrations/0003_forum_tag_visibility.sql` |
 
 要点提醒：
 
 - 付费正文从 D1 `course_sections.body_md` 读取，`visibility = locked` 时服务端检查 session + 有效 `entitlements.scope`；`/courses` 读元数据但不查 `body_md`。
-- 当前正式 entitlement scope 为 `course:full`。
-- 论坛 v1 同样复用 `course:full`：`lib/forum.ts` 负责 session、profiles、entitlement、D1 读写、slug、发帖/回帖限流、作者/管理员授权、软删除与恢复；`/forum` 顶栏入口已恢复。
+- 当前正式课程通行证 scope 为 `course:full`；能力层预留 `forum:access`、`mcp:read`、`api:read`。论坛接受 `forum:access` 或 `course:full`，MCP 读取后续接受 `mcp:read` 或 `course:full`，外部 API 默认独立 `api:read`。
+- 论坛 v1：`lib/forum.ts` 负责 session、profiles、entitlement、D1 读写、slug、发帖/回帖限流、作者/管理员授权、软删除与恢复；`/forum` 顶栏入口已恢复。
 - 论坛默认标签 migration 已在远端 D1 执行：`homework` / `ask` / `share` / `pitfall`。管理员可在 `/admin/forum-tags` 新增、改名、隐藏/恢复标签；学员只能选择未隐藏标签。
 - 远端论坛已有发布公告首帖；受限论坛正文仍不做仓库备份。
+- 安全限流使用 D1 `rate_limits` 表：认证 POST、验证码相关、兑换、卡密管理、论坛写操作都已接入；key 只存 hash，不存 IP / 邮箱 / 卡密明文。
+- 卡密后台支持生成、批次列表、按批次 + scope 禁用剩余卡密；明文仍只在生成结果里显示一次。
+- DirectMail 成功发送不再逐封打日志；失败日志只保留类型、错误码、requestId、状态码等排障字段。
 - 顶栏登录态**刻意走客户端 `useSession`**，以保留首页 / 课程页的静态渲染。
 - 本地待导入付费正文放 `课程文档/`（已 `.gitignore`），导入用 `pnpm course:import -- --remote ...`，详见 [course-content.md](course-content.md)。
 
@@ -61,17 +65,16 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 - 论坛还缺作业示例、提问模板等运营内容；不要把受限论坛正文备份提交进仓库。
 - 论坛后续可补更细的管理能力：评论隐藏 / 删除、管理员列表页、用户禁言或更长窗口限流。
 - 前端缺口：首页 / 顶栏 / 课程 Gate 指向 `/courses/enroll`，但报名正文未写（`ENROLL.available=false`，点进去是「待上传」占位）；课程介绍页（非文章 landing）仍待做。
-- 兑换、注册、登录、发信接口需要更细的限流与机器人防护。
-- 管理后台只有生成卡密，缺批次列表、禁用、使用记录查询。
-- DirectMail 发送日志当前用于排障，后续可收敛成更少的结构化日志。
+- 后续仍可加 Turnstile、人机验证、管理员用户列表与更细审计。
+- 卡密后台仍缺单张卡查询、使用记录详情与撤销/调整已发权益。
 
 ## 下一步建议
 
 优先级从高到低：
 
 1. 由管理员补作业分享引导 / 提问模板，并做学员 / 管理员两视角 smoke test。
-2. 补管理员卡密列表：按 `batch_id`、`scope`、使用次数、过期时间展示，支持禁用未发出的批次。
-3. 增加基础限流：至少覆盖注册、验证码发送、登录、卡密兑换、管理员生成卡密。
+2. 为 MCP / 外部 API 做 token 表、撤销、审计日志和读接口适配器设计。
+3. 补管理员卡密使用记录详情，支持排查某批次兑换情况。
 4. 课程内容操作下一层便利：可选 frontmatter 解析、批量导入、导入前预览 diff。
 
 ## 验证命令
@@ -82,6 +85,7 @@ pnpm build
 gh run list --repo mmm8091/makeshift-dev --limit 3
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from user;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from forum_posts; select slug,name,hidden_at from forum_tags;"
+pnpm wrangler d1 execute makeshift-dev --remote --command "select namespace,count(*) from rate_limits group by namespace;"
 ```
 
 ## 交接提醒

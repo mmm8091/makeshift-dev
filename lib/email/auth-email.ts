@@ -41,16 +41,20 @@ export async function sendAuthOTPEmail(
   } catch (error) {
     console.error("Auth OTP email failed", {
       type: data.type,
-      error:
-        error instanceof Error
-          ? {
-              name: error.name,
-              message: error.message,
-            }
-          : String(error),
+      error: summarizeEmailError(error),
     });
     throw error;
   }
+}
+
+function summarizeEmailError(error: unknown) {
+  if (!(error instanceof Error)) return { name: "UnknownError" };
+  return {
+    name: error.name,
+    code: "code" in error ? error.code : undefined,
+    requestId: "requestId" in error ? error.requestId : undefined,
+    status: "status" in error ? error.status : undefined,
+  };
 }
 
 function getSubject(type: AuthEmailOTPType) {

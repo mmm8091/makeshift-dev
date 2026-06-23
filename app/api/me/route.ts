@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { profiles, user } from "@/db/schema";
 import { createAuth } from "@/lib/auth";
+import { getClientIp, requireRateLimit } from "@/lib/rate-limit";
 
 type ProfilePatch = {
   displayName?: unknown;
@@ -35,6 +36,24 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   const context = await getAuthedContext(request);
   if (!context) return unauthorized();
+
+  const ipLimit = await requireRateLimit({
+    env: context.env,
+    namespace: "profile:update:ip",
+    key: getClientIp(request),
+    limit: 60,
+    windowMs: 60 * 60_000,
+  });
+  if (ipLimit) return ipLimit;
+
+  const userLimit = await requireRateLimit({
+    env: context.env,
+    namespace: "profile:update:user",
+    key: context.session.user.id,
+    limit: 30,
+    windowMs: 60 * 60_000,
+  });
+  if (userLimit) return userLimit;
 
   const body = (await request.json().catch(() => null)) as ProfilePatch | null;
   if (!body) {

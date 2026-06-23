@@ -9,6 +9,7 @@ import {
   inferParentSlugFromTitle,
   type CourseEntry,
 } from "@/lib/courses";
+import { hasActiveEntitlement } from "@/lib/entitlements";
 
 /**
  * 公开课程正文的读取层（seam）。
@@ -133,20 +134,8 @@ export async function getDbCourseMarkdown({
   if (!session) return null;
 
   const scope = section.requiredEntitlement || DEFAULT_COURSE_ENTITLEMENT;
-  const [entitlement] = await db
-    .select({ id: entitlements.id })
-    .from(entitlements)
-    .where(
-      and(
-        eq(entitlements.userId, session.user.id),
-        eq(entitlements.scope, scope),
-        lte(entitlements.startsAt, new Date()),
-        or(isNull(entitlements.expiresAt), gt(entitlements.expiresAt, new Date())),
-      ),
-    )
-    .limit(1);
-
-  return entitlement ? section.bodyMd : null;
+  const entitled = await hasActiveEntitlement(db, session.user.id, [scope]);
+  return entitled ? section.bodyMd : null;
 }
 
 /** 当前登录用户拥有的有效权益 scope；只返回 scope，不碰课程正文。 */

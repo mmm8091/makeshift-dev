@@ -18,13 +18,11 @@ import {
   gt,
   inArray,
   isNull,
-  lte,
   or,
   sql,
 } from "drizzle-orm";
 import { getDb, type Db } from "@/db/client";
 import {
-  entitlements,
   forumComments,
   forumPosts,
   forumPostTags,
@@ -32,7 +30,8 @@ import {
   profiles,
 } from "@/db/schema";
 import { createAuth } from "@/lib/auth";
-import { DEFAULT_COURSE_ENTITLEMENT } from "@/lib/courses";
+import { CAPABILITY_SCOPES, hasActiveEntitlement } from "@/lib/entitlements";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   TITLE_MAX,
   BODY_MAX,
@@ -300,6 +299,17 @@ async function recentlyWrote(
   return Number(row?.count ?? 0) > 0;
 }
 
+async function forumWriteLimit(
+  env: CloudflareEnv,
+  userId: string,
+  namespace: string,
+  limit: number,
+  windowMs: number,
+): Promise<boolean> {
+  const result = await consumeRateLimit({ env, namespace, key: userId, limit, windowMs });
+  return !result.ok;
+}
+
 function randomSlugPrefix(): string {
   const bytes = new Uint8Array(4);
   crypto.getRandomValues(bytes);
@@ -347,7 +357,7 @@ async function insertPostTags(
 
 /**
  * 解析访问者；无 session 返回 null。
- * 权益 v1 复用课程 `course:full`，便于日后在本层内部拆 `forum:*` scope。
+ * 论坛能力可由独立 `forum:access` 或现有课程通行证 `course:full` 解锁。
  */
 export async function resolveViewer(args: ServiceArgs): Promise<Viewer | null> {
   const session = await createAuth(args.env).api.getSession({
@@ -365,25 +375,17 @@ export async function resolveViewer(args: ServiceArgs): Promise<Viewer | null> {
     .where(eq(profiles.userId, session.user.id))
     .limit(1);
 
-  const now = new Date();
-  const [entitlement] = await db
-    .select({ id: entitlements.id })
-    .from(entitlements)
-    .where(
-      and(
-        eq(entitlements.userId, session.user.id),
-        eq(entitlements.scope, DEFAULT_COURSE_ENTITLEMENT),
-        lte(entitlements.startsAt, now),
-        or(isNull(entitlements.expiresAt), gt(entitlements.expiresAt, now)),
-      ),
-    )
-    .limit(1);
+  const hasForumAccess = await hasActiveEntitlement(
+    db,
+    session.user.id,
+    CAPABILITY_SCOPES.forum,
+  );
 
   return {
     userId: session.user.id,
     displayName: profile?.displayName || session.user.name || "佚名编子",
     role: toForumRole(profile?.role),
-    hasForumAccess: Boolean(entitlement),
+    hasForumAccess,
   };
 }
 
@@ -730,6 +732,17 @@ export async function createPost(
   if (await recentlyWrote(db, forumPosts, viewer.userId, POST_RATE_MS)) {
     return { ok: false, reason: "rate_limited", message: "发帖太快了，缓一下再发" };
   }
+  if (
+    await forumWriteLimit(
+      args.env,
+      viewer.userId,
+      "forum:create-post:user",
+      10,
+      10 * 60_000,
+    )
+  ) {
+    return { ok: false, reason: "rate_limited", message: "今天锤得太快了，歇一小会儿再发" };
+  }
 
   const now = new Date();
   const id = crypto.randomUUID();
@@ -775,6 +788,17 @@ export async function addComment(
 
   if (await recentlyWrote(db, forumComments, viewer.userId, COMMENT_RATE_MS)) {
     return { ok: false, reason: "rate_limited", message: "回复太快了，缓一下" };
+  }
+  if (
+    await forumWriteLimit(
+      args.env,
+      viewer.userId,
+      "forum:add-comment:user",
+      40,
+      10 * 60_000,
+    )
+  ) {
+    return { ok: false, reason: "rate_limited", message: "回复太密了，稍后再来" };
   }
 
   const now = new Date();
@@ -895,6 +919,17 @@ export async function moderatePost(
     .where(eq(forumPosts.id, args.postId))
     .limit(1);
   if (!post) return { ok: false, reason: "invalid", message: "帖子不存在" };
+  if (
+    await forumWriteLimit(
+      args.env,
+      viewer.userId,
+      "forum:moderate-post:user",
+      80,
+      10 * 60_000,
+    )
+  ) {
+    return { ok: false, reason: "rate_limited", message: "管理操作太频繁了，稍后再试" };
+  }
 
   const now = new Date();
   const patch: Partial<ForumPostRow> = { updatedAt: now };
