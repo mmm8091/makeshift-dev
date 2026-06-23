@@ -32,6 +32,7 @@ import {
   type Viewer,
 } from "@/lib/forum";
 import { consumeRateLimit, getClientIp, requireRateLimit } from "@/lib/rate-limit";
+import { APP_VERSION } from "@/lib/site";
 
 type JsonRpcRequest = {
   jsonrpc?: unknown;
@@ -161,7 +162,7 @@ export async function GET() {
   return Response.json({
     ok: true,
     service: "makeshift-dev-agent-access",
-    version: "0.3.0",
+    version: APP_VERSION,
     tools: TOOL_DEFINITIONS.map(({ name, description }) => ({ name, description })),
   });
 }
@@ -178,7 +179,7 @@ export async function POST(request: Request) {
     return jsonRpcResult(rpc, {
       protocolVersion: "2024-11-05",
       capabilities: { tools: {} },
-      serverInfo: { name: "makeshift-dev", version: "0.3.0" },
+      serverInfo: { name: "makeshift-dev", version: APP_VERSION },
     });
   }
   if (rpc.method === "tools/list") {
@@ -319,7 +320,7 @@ async function runTool({
       return {
         ok: true,
         service: "makeshift-dev-agent-access",
-        version: "0.3.0",
+        version: APP_VERSION,
         now: new Date().toISOString(),
       };
     case "auth_whoami":
