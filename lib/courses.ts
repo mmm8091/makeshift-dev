@@ -55,6 +55,7 @@ export const COURSES: CourseEntry[] = [
 
 const SUBSECTION_PARENT_BY_MAJOR: Record<string, string> = {
   "1": "01-will",
+  "2": "02-development-system-part-1",
 };
 
 /** 让 D1 小节按标题号自动挂到大讲下面，例如 1.1 -> 第一讲。 */
