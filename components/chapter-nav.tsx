@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { LockIcon } from "@/components/icons";
@@ -50,6 +50,7 @@ function NavRow({
   index,
   nested = false,
   unlockedEntitlements,
+  currentItemRef,
   onSelect,
 }: {
   article: CourseEntry;
@@ -57,6 +58,7 @@ function NavRow({
   index?: number;
   nested?: boolean;
   unlockedEntitlements: string[];
+  currentItemRef?: Ref<HTMLLIElement>;
   onSelect: () => void;
 }) {
   const state = stateOf(article, currentSlug);
@@ -104,7 +106,10 @@ function NavRow({
   );
 
   return (
-    <li key={article.slug ?? `${article.order}-${article.title}`}>
+    <li
+      key={article.slug ?? `${article.order}-${article.title}`}
+      ref={state === "current" ? currentItemRef : undefined}
+    >
       {href ? (
         <Link
           href={href}
@@ -131,6 +136,20 @@ export function ChapterNav({
   unlockedEntitlements?: string[];
 }) {
   const [open, setOpen] = useState(false);
+  const currentItemRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      currentItemRef.current?.scrollIntoView({
+        block: "center",
+        inline: "nearest",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentSlug, open]);
 
   return (
     <>
@@ -176,6 +195,7 @@ export function ChapterNav({
                       currentSlug={currentSlug}
                       index={index}
                       unlockedEntitlements={unlockedEntitlements}
+                      currentItemRef={currentItemRef}
                       onSelect={() => setOpen(false)}
                     />
                     {article.slug &&
@@ -186,6 +206,7 @@ export function ChapterNav({
                           currentSlug={currentSlug}
                           nested
                           unlockedEntitlements={unlockedEntitlements}
+                          currentItemRef={currentItemRef}
                           onSelect={() => setOpen(false)}
                         />
                       ))}
