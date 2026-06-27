@@ -29,6 +29,24 @@ const RULES = [
     message:
       "中文正文括号里放裸 URL 容易被 GFM 自动链接误判；改成显式 Markdown 链接。",
   },
+  {
+    code: "export-escaped-punctuation",
+    pattern: /\\[._-]/g,
+    message:
+      "发现导出器留下的反斜杠转义；中文课程正文里通常应写成普通字符，数学变量请用 $...$ 包起来。",
+  },
+  {
+    code: "fragile-bold-math",
+    pattern: /\*\*[^*\n]+\*\*\s*\$[^$\n]+\$\s*\*\*[^*\n]+\*\*/g,
+    message:
+      "加粗标记紧贴行内公式时容易渲染失败；改成整句文字加粗，并把公式放在括号或普通文本里。",
+  },
+  {
+    code: "course-heading-level",
+    pattern: /^####\s+.+$/gm,
+    message:
+      "课程正文小节请使用二级标题 ##，这样页面会显示统一的斜杠标题样式。",
+  },
 ];
 
 export function lintMarkdownFile(filePath) {
