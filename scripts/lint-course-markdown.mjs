@@ -69,12 +69,42 @@ export function lintMarkdownText(markdown, filePath = "<input>") {
     }
   }
 
+  findings.push(...findHeadingHierarchyFindings(markdown, filePath));
+
   return findings.sort((a, b) => {
     if (a.filePath !== b.filePath) return a.filePath.localeCompare(b.filePath);
     if (a.line !== b.line) return a.line - b.line;
     if (a.column !== b.column) return a.column - b.column;
     return a.code.localeCompare(b.code);
   });
+}
+
+function findHeadingHierarchyFindings(markdown, filePath) {
+  const findings = [];
+  let hasSeenSectionHeading = false;
+
+  for (const match of markdown.matchAll(/^#{2,6}\s+.+$/gm)) {
+    const value = match[0];
+    const index = match.index ?? 0;
+
+    if (/^##\s+/.test(value)) {
+      hasSeenSectionHeading = true;
+      continue;
+    }
+
+    if (/^###\s+/.test(value) && !hasSeenSectionHeading) {
+      findings.push({
+        code: "main-heading-level",
+        filePath,
+        ...lineColumnAt(markdown, index),
+        match: sanitizeMatch(value),
+        message:
+          "课程主小节请使用二级标题 ##；只有挂在某个 ## 下面的小小节才使用 ###。",
+      });
+    }
+  }
+
+  return findings;
 }
 
 export function collectMarkdownFiles(paths = DEFAULT_PATHS) {
