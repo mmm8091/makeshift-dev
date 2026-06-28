@@ -64,6 +64,8 @@ const components: Components = {
 };
 
 export function CourseMarkdown({ markdown }: { markdown: string }) {
+  const bodyMarkdown = stripLeadingTitleHeading(markdown);
+
   return (
     <div className="prose-letterpress">
       <ReactMarkdown
@@ -71,8 +73,15 @@ export function CourseMarkdown({ markdown }: { markdown: string }) {
         rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false }]]}
         components={components}
       >
-        {markdown}
+        {bodyMarkdown}
       </ReactMarkdown>
     </div>
+  );
+}
+
+export function stripLeadingTitleHeading(markdown: string) {
+  return markdown.replace(
+    /^\uFEFF?(?:[ \t]*\r?\n)*# [^\r\n]*(?:\r?\n)?(?:[ \t]*\r?\n)*/,
+    "",
   );
 }
