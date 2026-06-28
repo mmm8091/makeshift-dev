@@ -83,6 +83,9 @@ Fix those as explicit Markdown links before importing.
 ## Image Assets In Locked Markdown
 
 If locked Markdown references images, put only non-sensitive reusable assets under `public/`.
+Keep original/source course images in the tracked `图片/` folder when they are
+general reusable meme or screenshot assets. Do not use the old `梗图/` folder;
+it was renamed to `图片/`.
 
 For example:
 
@@ -96,5 +99,16 @@ Then reference them from Markdown:
 ```md
 ![Vibe Coding 梗图](/memes/vibe1.png)
 ```
+
+When importing a locked lesson that uses images:
+
+1. Convert or compress the source asset into `public/memes/` when practical.
+2. Reference the public path from the ignored locked Markdown, such as `/memes/example.webp`.
+3. Run `pnpm course:lint -- --file "课程文档/..."`.
+4. Import the one lesson with `pnpm course:import -- --remote ...`.
+5. Verify D1 with a targeted `instr(body_md, '/memes/example.webp')` query.
+6. Build or typecheck when the committed public asset changed.
+7. Commit the public asset and any workflow docs, but leave `课程文档/` uncommitted.
+8. After deploy, verify the public asset URL returns `200`.
 
 Do not put paid lesson explanations, private forum content, card keys, private student records, credentials, or database exports in committed files.
