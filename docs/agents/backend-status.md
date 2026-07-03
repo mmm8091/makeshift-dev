@@ -1,6 +1,6 @@
 # 后端状态
 
-更新时间：2026-07-03
+更新时间：2026-07-04
 
 这份是**活文档**（长期状态，非会话交接；会话交接按 handoff 技能放 OS 临时目录），记录后端 / 部署 / 权限系统的当前运维状态、关键文件地图与已知缺口。
 **已完成的功能与里程碑见 [CHANGELOG.md](../../CHANGELOG.md)，不在此重复堆积。**
@@ -14,7 +14,7 @@
 - D1 database：`makeshift-dev`，binding `DB`
 - 自动部署：`.github/workflows/deploy-cloudflare.yml`（push `main`）
 - 发版：`.github/workflows/release.yml`（push `v*` 标签自动建 GitHub Release，详见 [CHANGELOG.md](../../CHANGELOG.md) 流程）
-- 当前已验收版本：`0.3.2`
+- 当前已验收版本：`0.4.1`
 
 `main` 分支 push 后在 GitHub Actions 执行：
 
@@ -75,21 +75,21 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 ## 仍未完成
 
-- 0.4.0 还需要生产验收每日摘要真实发送；本地 Windows 无法完整跑 `opennextjs-cloudflare build`，已知失败点是 OpenNext 在 Windows 创建 symlink，CI/Linux 环境应按部署流水线验证。
+- 每日摘要还需要观察下一次真实 Cron 发送窗口，确认线上自然日汇总与幂等记录符合预期。
 - 论坛还缺作业示例、提问模板等运营内容；不要把受限论坛正文备份提交进仓库。
 - 论坛后续可补更细的管理能力：评论隐藏 / 删除、用户禁言或更长窗口限流。
 - 后续仍可加 Turnstile、人机验证、管理员用户列表与更细审计。
 - 卡密后台仍缺单张卡查询、使用记录详情与撤销/调整已发权益。
 - MCP / 外部 API 的窄 REST adapter 暂未做，当前入口是 `/api/mcp`。
-- 0.3.2 之后如继续打磨体验，可考虑给更多动态后台页补 `loading.tsx`，但注意不要把文章题记交接状态误用于普通路由。
+- 0.4.1 之后如继续打磨体验，可考虑给更多动态后台页补 `loading.tsx`，但注意不要把文章题记交接状态误用于普通路由。
 
 ## 下一步建议
 
 优先级从高到低：
 
-1. 用真实学员账号验收课程页反馈：未解锁不显示，已解锁可提交 / 更新 / 撤回，论坛讨论帖同步正确。
-2. 用 MCP checklist 验收课程反馈、关注帖子和回复点赞工具。
-3. 部署后观察第一次每日摘要 cron：确认 `daily_digest_deliveries` 只记录元数据，失败不含邮件正文。
+1. 观察下一次每日摘要 cron：确认 `daily_digest_deliveries` 只记录元数据，失败不含邮件正文。
+2. 用真实学员账号持续抽查课程页反馈：未解锁不显示，已解锁可提交 / 更新 / 撤回，论坛讨论帖同步正确。
+3. 用 MCP checklist 持续抽查课程反馈、关注帖子和回复点赞工具。
 4. 由管理员补作业分享引导 / 提问模板，并做学员 / 管理员两视角运营检查。
 5. 邀请一名真实学员按 [mcp-agent-access.md](mcp-agent-access.md) 自助配置 MCP，验证文档是否足够清楚。
 
