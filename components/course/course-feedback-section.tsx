@@ -47,9 +47,6 @@ export function CourseFeedbackSection({
           <p className="font-serif font-bold text-ink">
             还没人反馈这一节，你可以当第一个探路的人。
           </p>
-          <p className="mt-2 font-serif text-sm text-ink-soft">
-            顺利、难懂、卡住都欢迎。它不是考试成绩，是后面改课和互相搭把手的线索。
-          </p>
         </div>
       )}
 

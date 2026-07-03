@@ -173,20 +173,30 @@ export default async function CoursePage({
 
 async function getFeedbackSummary(slug: string) {
   const { env } = await getCloudflareContext({ async: true });
-  return getCourseFeedbackSummary({
-    env,
-    requestHeaders: await headers(),
-    sectionSlug: slug,
-  });
+  try {
+    return await getCourseFeedbackSummary({
+      env,
+      requestHeaders: await headers(),
+      sectionSlug: slug,
+    });
+  } catch (error) {
+    console.error("getCourseFeedbackSummary failed", error);
+    return null;
+  }
 }
 
 async function getDiscussionPostSlug(slug: string) {
   const { env } = await getCloudflareContext({ async: true });
-  return getCourseDiscussionPostSlug({
-    env,
-    requestHeaders: await headers(),
-    sectionSlug: slug,
-  });
+  try {
+    return await getCourseDiscussionPostSlug({
+      env,
+      requestHeaders: await headers(),
+      sectionSlug: slug,
+    });
+  } catch (error) {
+    console.error("getCourseDiscussionPostSlug failed", error);
+    return null;
+  }
 }
 
 async function getCourseContext(slug: string): Promise<{

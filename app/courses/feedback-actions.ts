@@ -44,17 +44,27 @@ export async function submitCourseFeedbackAction(
   formData: FormData,
 ): Promise<CourseFeedbackFormState> {
   const sectionSlug = String(formData.get("sectionSlug") ?? "");
-  const result = await submitCourseFeedback({
-    ...(await serviceArgs()),
-    input: {
-      sectionSlug,
-      status: String(formData.get("status") ?? "") as FeedbackStatus,
-      bodyMd: String(formData.get("bodyMd") ?? ""),
-    },
-  });
+  let result: Awaited<ReturnType<typeof submitCourseFeedback>>;
+  try {
+    result = await submitCourseFeedback({
+      ...(await serviceArgs()),
+      input: {
+        sectionSlug,
+        status: String(formData.get("status") ?? "") as FeedbackStatus,
+        bodyMd: String(formData.get("bodyMd") ?? ""),
+      },
+    });
+  } catch (error) {
+    console.error("submitCourseFeedbackAction failed", error);
+    return { ok: false, message: "反馈提交失败，刷新页面后再试一次。" };
+  }
   if (!result.ok) return toFormState(result);
 
-  revalidatePath(`/courses/${sectionSlug}`);
+  try {
+    revalidatePath(`/courses/${sectionSlug}`);
+  } catch (error) {
+    console.error("course feedback revalidate failed", error);
+  }
   if (!result.discussionLinked) {
     return {
       ok: true,
@@ -67,12 +77,22 @@ export async function submitCourseFeedbackAction(
 export async function withdrawCourseFeedbackAction(args: {
   sectionSlug: string;
 }): Promise<CourseFeedbackFormState> {
-  const result = await withdrawCourseFeedback({
-    ...(await serviceArgs()),
-    sectionSlug: args.sectionSlug,
-  });
+  let result: Awaited<ReturnType<typeof withdrawCourseFeedback>>;
+  try {
+    result = await withdrawCourseFeedback({
+      ...(await serviceArgs()),
+      sectionSlug: args.sectionSlug,
+    });
+  } catch (error) {
+    console.error("withdrawCourseFeedbackAction failed", error);
+    return { ok: false, message: "反馈撤回失败，刷新页面后再试一次。" };
+  }
   if (!result.ok) return toFormState(result);
 
-  revalidatePath(`/courses/${args.sectionSlug}`);
+  try {
+    revalidatePath(`/courses/${args.sectionSlug}`);
+  } catch (error) {
+    console.error("course feedback revalidate failed", error);
+  }
   return { ok: true, message: "反馈已撤回。" };
 }
