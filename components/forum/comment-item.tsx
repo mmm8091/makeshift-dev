@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { CommentComposer } from "@/components/forum/comment-composer";
+import { CommentLikeButton } from "@/components/forum/comment-like-button";
 
 /**
  * 单条回复 + 就地编辑。byline 与正文由服务端渲染后传入，客户端只切换编辑态。
@@ -11,6 +12,9 @@ export function CommentItem({
   commentId,
   slug,
   rawBody,
+  likeCount,
+  likedByViewer,
+  canLike,
   byline,
   children,
 }: {
@@ -18,6 +22,9 @@ export function CommentItem({
   commentId: string;
   slug: string;
   rawBody: string;
+  likeCount: number;
+  likedByViewer: boolean;
+  canLike: boolean;
   byline: ReactNode;
   children: ReactNode;
 }) {
@@ -50,7 +57,18 @@ export function CommentItem({
           />
         </div>
       ) : (
-        <div className="mt-2 pl-[2.6rem]">{children}</div>
+        <div className="mt-2 pl-[2.6rem]">
+          {children}
+          <div className="mt-3">
+            <CommentLikeButton
+              commentId={commentId}
+              slug={slug}
+              initialLiked={likedByViewer}
+              initialCount={likeCount}
+              canLike={canLike}
+            />
+          </div>
+        </div>
       )}
     </li>
   );

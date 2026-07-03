@@ -11,6 +11,8 @@
 | [草台编子识字班插画美术规范.md](草台编子识字班插画美术规范.md) | 木刻美术规范。**【插画必读】** |
 | [草台编子识字班论坛v1实现规格.md](草台编子识字班论坛v1实现规格.md) | 论坛 v1 实现规格。**【论坛必读】** |
 | [草台编子识字班-agent-access-v0.3技术方案.md](草台编子识字班-agent-access-v0.3技术方案.md) | Agent 访问令牌与 MCP 首版实现方案。**【MCP 必读】** |
+| [草台编子识字班课程反馈v0.4实现规格.md](草台编子识字班课程反馈v0.4实现规格.md) | 课程反馈、课程讨论帖联动与后台统计规格。**【课程反馈必读】** |
+| [草台编子识字班论坛互动v0.4实现规格.md](草台编子识字班论坛互动v0.4实现规格.md) | 活跃排序、关注帖子、回复点赞、每日摘要与 MCP 互动工具。**【论坛互动必读】** |
 
 ## 架构决策（ADR · [adr/](adr/)）
 
@@ -24,6 +26,7 @@
 | [2026-06-21 DirectMail 邮箱 OTP](adr/2026-06-21-directmail-email-otp-auth.md) | 邮件发送决策 |
 | [2026-06-23 论坛与 Agent 接入模型](adr/2026-06-23-forum-and-agent-access-model.md) | 单一服务层 + 卡密门禁 + MCP。**【论坛必读】** |
 | [2026-06-23 MCP / 外部 API token 鉴权](adr/2026-06-23-mcp-api-token-auth.md) | 用户授权令牌 + 实时 entitlement 门禁。**【MCP 必读】** |
+| [2026-07-03 课程反馈与论坛讨论分层](adr/2026-07-03-course-feedback-and-forum-discussion.md) | 课程反馈作为统计真相，论坛承载公开讨论。**【课程反馈必读】** |
 
 ## Agent 工作规则（[agents/](agents/)）
 
@@ -55,6 +58,17 @@
 5. [agents/backend-status.md](agents/backend-status.md) — auth / entitlement / profiles 已就位，是论坛前置
 6. [agents/frontend.md](agents/frontend.md) — 前端约定
 7. [agents/course-content.md](agents/course-content.md) — 公开/私密边界细则
+
+## 课程反馈 v0.4 开发前必读
+
+按顺序：
+
+1. [../CONTEXT.md](../CONTEXT.md) — 领域词汇与公开/私密边界
+2. [adr/2026-07-03-course-feedback-and-forum-discussion.md](adr/2026-07-03-course-feedback-and-forum-discussion.md) — 反馈统计与论坛讨论分层决策
+3. [草台编子识字班课程反馈v0.4实现规格.md](草台编子识字班课程反馈v0.4实现规格.md) — 课程反馈本体规格
+4. [草台编子识字班论坛互动v0.4实现规格.md](草台编子识字班论坛互动v0.4实现规格.md) — 论坛互动与每日摘要规格
+5. [草台编子识字班论坛v1实现规格.md](草台编子识字班论坛v1实现规格.md) — 反馈文字同步论坛回复时复用的论坛规则
+6. [agents/collaboration.md](agents/collaboration.md) — 前后端分轮约定
 
 ## 维护约定
 

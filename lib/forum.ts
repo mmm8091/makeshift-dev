@@ -24,7 +24,9 @@ import {
 import { getDb, type Db } from "@/db/client";
 import {
   forumComments,
+  forumCommentVotes,
   forumPosts,
+  forumPostSubscriptions,
   forumPostTags,
   forumTags,
   profiles,
@@ -71,6 +73,7 @@ const TAG_SLUG_MAX = 40;
 
 const POST_RATE_MS = 5_000;
 const COMMENT_RATE_MS = 3_000;
+const LIKE_RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
 const DEFAULT_TAGS: Tag[] = [
   { slug: "homework", name: "作业分享" },
@@ -209,6 +212,103 @@ async function loadPublishedCommentCounts(
 
   for (const row of rows) map.set(row.postId, Number(row.count));
   return map;
+}
+
+async function loadVoteCounts(
+  db: Db,
+  commentIds: string[],
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (commentIds.length === 0) return map;
+
+  const rows = await db
+    .select({
+      commentId: forumCommentVotes.commentId,
+      count: sql<number>`count(*)`,
+    })
+    .from(forumCommentVotes)
+    .innerJoin(forumComments, eq(forumCommentVotes.commentId, forumComments.id))
+    .where(
+      and(
+        inArray(forumCommentVotes.commentId, commentIds),
+        eq(forumComments.status, "published"),
+      ),
+    )
+    .groupBy(forumCommentVotes.commentId);
+
+  for (const row of rows) map.set(row.commentId, Number(row.count));
+  return map;
+}
+
+async function loadViewerVotes(
+  db: Db,
+  commentIds: string[],
+  userId: string,
+): Promise<Set<string>> {
+  if (commentIds.length === 0) return new Set();
+  const rows = await db
+    .select({ commentId: forumCommentVotes.commentId })
+    .from(forumCommentVotes)
+    .where(
+      and(
+        inArray(forumCommentVotes.commentId, commentIds),
+        eq(forumCommentVotes.userId, userId),
+      ),
+    );
+  return new Set(rows.map((row) => row.commentId));
+}
+
+async function isPostFollowed(
+  db: Db,
+  postId: string,
+  userId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ postId: forumPostSubscriptions.postId })
+    .from(forumPostSubscriptions)
+    .where(
+      and(
+        eq(forumPostSubscriptions.postId, postId),
+        eq(forumPostSubscriptions.userId, userId),
+        isNull(forumPostSubscriptions.mutedAt),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
+async function autoFollowPost(
+  db: Db,
+  postId: string,
+  userId: string,
+  now = new Date(),
+): Promise<void> {
+  await db
+    .insert(forumPostSubscriptions)
+    .values({ postId, userId, mutedAt: null, createdAt: now, updatedAt: now })
+    .onConflictDoNothing();
+}
+
+async function setPostFollowed(
+  db: Db,
+  postId: string,
+  userId: string,
+  followed: boolean,
+  now = new Date(),
+): Promise<void> {
+  await db
+    .insert(forumPostSubscriptions)
+    .values({
+      postId,
+      userId,
+      mutedAt: followed ? null : now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [forumPostSubscriptions.postId, forumPostSubscriptions.userId],
+      set: { mutedAt: followed ? null : now, updatedAt: now },
+    });
 }
 
 function normalizeTagSlugs(tagSlugs: string[]): string[] {
@@ -568,6 +668,7 @@ export async function listPosts(
       status: forumPosts.status,
       pinnedAt: forumPosts.pinnedAt,
       authorId: forumPosts.authorId,
+      lastActivityAt: forumPosts.lastActivityAt,
       createdAt: forumPosts.createdAt,
       displayName: profiles.displayName,
       qqNumber: profiles.qqNumber,
@@ -581,7 +682,7 @@ export async function listPosts(
     )
     .orderBy(
       moderation ? desc(forumPosts.updatedAt) : desc(forumPosts.pinnedAt),
-      desc(forumPosts.createdAt),
+      moderation ? desc(forumPosts.createdAt) : desc(forumPosts.lastActivityAt),
     );
 
   const postIds = rows.map((row) => row.id);
@@ -615,6 +716,7 @@ export async function listPosts(
     status: row.status,
     pinned: row.pinnedAt !== null,
     createdAt: toMs(row.createdAt),
+    lastActivityAt: toMs(row.lastActivityAt),
     commentCount: commentCounts.get(row.id) ?? 0,
     excerpt: excerptOf(row.bodyMd),
   }));
@@ -639,6 +741,7 @@ export async function getThread(
       status: forumPosts.status,
       pinnedAt: forumPosts.pinnedAt,
       authorId: forumPosts.authorId,
+      lastActivityAt: forumPosts.lastActivityAt,
       createdAt: forumPosts.createdAt,
       updatedAt: forumPosts.updatedAt,
       displayName: profiles.displayName,
@@ -669,6 +772,11 @@ export async function getThread(
     .where(eq(forumComments.postId, row.id))
     .orderBy(asc(forumComments.createdAt));
 
+  const commentIds = commentRows.map((comment) => comment.id);
+  const voteCounts = await loadVoteCounts(db, commentIds);
+  const viewerVotes = await loadViewerVotes(db, commentIds, viewer.userId);
+  const postFollowed = await isPostFollowed(db, row.id, viewer.userId);
+
   const comments: Comment[] = commentRows
     .filter((comment) => canSeeStatus(viewer, comment.status, comment.authorId))
     .map((comment) => ({
@@ -682,6 +790,9 @@ export async function getThread(
       status: comment.status,
       createdAt: toMs(comment.createdAt),
       updatedAt: toMs(comment.updatedAt),
+      likeCount: voteCounts.get(comment.id) ?? 0,
+      likedByViewer: viewerVotes.has(comment.id),
+      canLike: comment.authorId !== viewer.userId && comment.status === "published",
       canEdit: canEdit(viewer, comment.authorId),
     }));
 
@@ -703,6 +814,8 @@ export async function getThread(
       pinned: row.pinnedAt !== null,
       createdAt: toMs(row.createdAt),
       updatedAt: toMs(row.updatedAt),
+      lastActivityAt: toMs(row.lastActivityAt),
+      isFollowed: postFollowed,
       canEdit: canEdit(viewer, row.authorId),
       canModerate: viewer.role === "admin",
     },
@@ -759,10 +872,12 @@ export async function createPost(
     bodyMd: args.input.bodyMd.trim(),
     status: "published",
     pinnedAt: null,
+    lastActivityAt: now,
     createdAt: now,
     updatedAt: now,
   });
   await insertPostTags(db, id, tagValidation.tagIds);
+  await autoFollowPost(db, id, viewer.userId, now);
 
   return { ok: true, slug };
 }
@@ -843,6 +958,11 @@ export async function addComment(
     createdAt: now,
     updatedAt: now,
   });
+  await db
+    .update(forumPosts)
+    .set({ lastActivityAt: now, updatedAt: now })
+    .where(eq(forumPosts.id, post.id));
+  await autoFollowPost(db, post.id, viewer.userId, now);
 
   return { ok: true, id };
 }
@@ -989,4 +1109,178 @@ export async function moderatePost(
 
   await db.update(forumPosts).set(patch).where(eq(forumPosts.id, post.id));
   return { ok: true };
+}
+
+export async function followPost(
+  args: ServiceArgs & { postId: string },
+): Promise<WriteResult> {
+  const viewer = await resolveViewer(args);
+  if (!viewer?.hasForumAccess) return { ok: false, reason: "forbidden" };
+
+  const db = getDb(args.env);
+  const [post] = await db
+    .select({ id: forumPosts.id, status: forumPosts.status, authorId: forumPosts.authorId })
+    .from(forumPosts)
+    .where(eq(forumPosts.id, args.postId))
+    .limit(1);
+  if (!post || !canSeeStatus(viewer, post.status, post.authorId)) {
+    return { ok: false, reason: "invalid", message: "帖子不存在" };
+  }
+
+  await setPostFollowed(db, post.id, viewer.userId, true);
+  return { ok: true };
+}
+
+export async function unfollowPost(
+  args: ServiceArgs & { postId: string },
+): Promise<WriteResult> {
+  const viewer = await resolveViewer(args);
+  if (!viewer?.hasForumAccess) return { ok: false, reason: "forbidden" };
+
+  const db = getDb(args.env);
+  const [post] = await db
+    .select({ id: forumPosts.id, status: forumPosts.status, authorId: forumPosts.authorId })
+    .from(forumPosts)
+    .where(eq(forumPosts.id, args.postId))
+    .limit(1);
+  if (!post || !canSeeStatus(viewer, post.status, post.authorId)) {
+    return { ok: false, reason: "invalid", message: "帖子不存在" };
+  }
+
+  await setPostFollowed(db, post.id, viewer.userId, false);
+  return { ok: true };
+}
+
+export async function likeComment(
+  args: ServiceArgs & { commentId: string },
+): Promise<WriteResult> {
+  const viewer = await resolveViewer(args);
+  if (!viewer?.hasForumAccess) return { ok: false, reason: "forbidden" };
+
+  if (
+    await forumWriteLimit(
+      args.env,
+      viewer.userId,
+      "forum:like-comment:user",
+      LIKE_RATE_LIMIT.limit,
+      LIKE_RATE_LIMIT.windowMs,
+    )
+  ) {
+    return { ok: false, reason: "rate_limited", message: "点赞太快了，缓一下" };
+  }
+
+  const db = getDb(args.env);
+  const [comment] = await db
+    .select({
+      id: forumComments.id,
+      authorId: forumComments.authorId,
+      status: forumComments.status,
+      postId: forumComments.postId,
+      postStatus: forumPosts.status,
+      postAuthorId: forumPosts.authorId,
+    })
+    .from(forumComments)
+    .innerJoin(forumPosts, eq(forumComments.postId, forumPosts.id))
+    .where(eq(forumComments.id, args.commentId))
+    .limit(1);
+  if (
+    !comment ||
+    comment.status !== "published" ||
+    !canSeeStatus(viewer, comment.postStatus, comment.postAuthorId)
+  ) {
+    return { ok: false, reason: "invalid", message: "回复不存在" };
+  }
+  if (comment.authorId === viewer.userId) {
+    return { ok: false, reason: "invalid", message: "不能给自己的回复点赞" };
+  }
+
+  await db
+    .insert(forumCommentVotes)
+    .values({ commentId: comment.id, userId: viewer.userId, value: 1 })
+    .onConflictDoNothing();
+  return { ok: true };
+}
+
+export async function unlikeComment(
+  args: ServiceArgs & { commentId: string },
+): Promise<WriteResult> {
+  const viewer = await resolveViewer(args);
+  if (!viewer?.hasForumAccess) return { ok: false, reason: "forbidden" };
+
+  const db = getDb(args.env);
+  await db
+    .delete(forumCommentVotes)
+    .where(
+      and(
+        eq(forumCommentVotes.commentId, args.commentId),
+        eq(forumCommentVotes.userId, viewer.userId),
+      ),
+    );
+  return { ok: true };
+}
+
+export async function listFollowedPosts(
+  args: ServiceArgs & { cursor?: string; limit?: number },
+): Promise<PostListPage | null> {
+  const viewer = await resolveViewer(args);
+  if (!viewer?.hasForumAccess) return null;
+
+  const db = getDb(args.env);
+  const limit = Math.min(Math.max(args.limit ?? 20, 1), 50);
+  const rows = await db
+    .select({
+      id: forumPosts.id,
+      slug: forumPosts.slug,
+      title: forumPosts.title,
+      bodyMd: forumPosts.bodyMd,
+      status: forumPosts.status,
+      pinnedAt: forumPosts.pinnedAt,
+      authorId: forumPosts.authorId,
+      lastActivityAt: forumPosts.lastActivityAt,
+      createdAt: forumPosts.createdAt,
+      displayName: profiles.displayName,
+      qqNumber: profiles.qqNumber,
+    })
+    .from(forumPostSubscriptions)
+    .innerJoin(forumPosts, eq(forumPostSubscriptions.postId, forumPosts.id))
+    .leftJoin(profiles, eq(forumPosts.authorId, profiles.userId))
+    .where(
+      and(
+        eq(forumPostSubscriptions.userId, viewer.userId),
+        isNull(forumPostSubscriptions.mutedAt),
+        eq(forumPosts.status, "published"),
+      ),
+    )
+    .orderBy(desc(forumPosts.lastActivityAt), desc(forumPosts.createdAt));
+
+  const startIndex =
+    args.cursor && isSafeCursor(args.cursor)
+      ? Math.max(rows.findIndex((row) => row.id === args.cursor) + 1, 0)
+      : 0;
+  const slice = rows.slice(startIndex, startIndex + limit);
+  const nextCursor =
+    startIndex + limit < rows.length ? slice[slice.length - 1]?.id ?? null : null;
+
+  const postIds = slice.map((row) => row.id);
+  const tagsByPost = await loadTagsForPosts(db, postIds);
+  const commentCounts = await loadPublishedCommentCounts(db, postIds);
+  const posts: PostSummary[] = slice.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    author: authorOf({
+      userId: row.authorId,
+      displayName: row.displayName,
+      qqNumber: row.qqNumber,
+    }),
+    tags: tagsByPost.get(row.id) ?? [],
+    status: row.status,
+    pinned: row.pinnedAt !== null,
+    createdAt: toMs(row.createdAt),
+    lastActivityAt: toMs(row.lastActivityAt),
+    commentCount: commentCounts.get(row.id) ?? 0,
+    excerpt: excerptOf(row.bodyMd),
+  }));
+
+  return { posts, nextCursor, tag: null, viewer };
 }

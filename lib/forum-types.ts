@@ -70,6 +70,7 @@ export type PostSummary = {
   status: ContentStatus;
   pinned: boolean;
   createdAt: number; // epoch ms
+  lastActivityAt: number; // epoch ms
   commentCount: number;
   /** 服务层裁出的纯文本预览，已去除 Markdown 控制符。 */
   excerpt: string;
@@ -90,6 +91,9 @@ export type Comment = {
   status: ContentStatus;
   createdAt: number;
   updatedAt: number;
+  likeCount: number;
+  likedByViewer: boolean;
+  canLike: boolean;
   /** 作者本人或管理员。 */
   canEdit: boolean;
 };
@@ -105,6 +109,8 @@ export type ThreadPost = {
   pinned: boolean;
   createdAt: number;
   updatedAt: number;
+  lastActivityAt: number;
+  isFollowed: boolean;
   /** 作者本人或管理员。 */
   canEdit: boolean;
   /** 仅管理员（置顶 / 隐藏 / 删除）。 */

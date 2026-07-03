@@ -17,6 +17,7 @@ export function ForumListView({
   basePath,
   emptyHint,
   mode = "public",
+  showTagFilter = true,
 }: {
   page: PostListPage;
   allTags: Tag[];
@@ -27,6 +28,7 @@ export function ForumListView({
   basePath: string;
   emptyHint?: string;
   mode?: "public" | "moderation";
+  showTagFilter?: boolean;
 }) {
   const isAdmin = page.viewer.role === "admin";
   const cursorPrefix = basePath.includes("?") ? "&" : "?";
@@ -61,7 +63,7 @@ export function ForumListView({
         </div>
       </header>
 
-      {mode === "public" && (
+      {mode === "public" && showTagFilter && (
         <div className="mt-6 flex flex-wrap items-center gap-2 border-y-2 border-edge py-3">
           <Link
             href="/forum"

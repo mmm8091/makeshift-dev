@@ -17,6 +17,7 @@ import { ModerationBar } from "@/components/forum/moderation-bar";
 import { PostBodyEditable } from "@/components/forum/post-body-editable";
 import { CommentItem } from "@/components/forum/comment-item";
 import { CommentComposer } from "@/components/forum/comment-composer";
+import { FollowPostButton } from "@/components/forum/follow-post-button";
 
 export const dynamic = "force-dynamic";
 
@@ -63,14 +64,21 @@ export default async function ThreadPage({
 
   return (
     <article className="mx-auto max-w-3xl px-5 py-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="kicker">工棚 · 帖子</p>
-        <Link
-          href="/forum"
-          className="font-serif text-sm font-semibold text-ink-soft hover:text-red"
-        >
-          返回论坛 →
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <FollowPostButton
+            postId={post.id}
+            slug={post.slug}
+            initialFollowed={post.isFollowed}
+          />
+          <Link
+            href="/forum"
+            className="font-serif text-sm font-semibold text-ink-soft hover:text-red"
+          >
+            返回论坛 →
+          </Link>
+        </div>
       </div>
 
       <header className="mt-4">
@@ -143,6 +151,9 @@ export default async function ThreadPage({
                   commentId={c.id}
                   slug={post.slug}
                   rawBody={c.bodyMd}
+                  likeCount={c.likeCount}
+                  likedByViewer={c.likedByViewer}
+                  canLike={c.canLike}
                   byline={
                     <AuthorByline
                       author={c.author}

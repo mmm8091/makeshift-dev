@@ -1,10 +1,11 @@
 # 后端状态
 
-更新时间：2026-06-23
+更新时间：2026-07-03
 
 这份是**活文档**（长期状态，非会话交接；会话交接按 handoff 技能放 OS 临时目录），记录后端 / 部署 / 权限系统的当前运维状态、关键文件地图与已知缺口。
 **已完成的功能与里程碑见 [CHANGELOG.md](../../CHANGELOG.md)，不在此重复堆积。**
 更长期的架构决策见 [docs/adr/](../adr/)，前端约定见 [frontend.md](frontend.md)，课程内容导入约定见 [course-content.md](course-content.md)，Agent MCP 操作文档见 [mcp-agent-access.md](mcp-agent-access.md)，产品边界见 [CONTEXT.md](../../CONTEXT.md) 与 [产品技术方案](../草台编子识字班产品技术方案.md)。
+课程反馈 v0.4 目标见 [课程反馈实现规格](../草台编子识字班课程反馈v0.4实现规格.md)、[论坛互动实现规格](../草台编子识字班论坛互动v0.4实现规格.md) 与 [课程反馈 ADR](../adr/2026-07-03-course-feedback-and-forum-discussion.md)。
 
 ## 当前生产入口
 
@@ -67,9 +68,11 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 ## 仍未完成
 
+- 0.4.0 主目标：课程反馈区与后台统计。每节课要求学员选择 `顺利 / 内容难懂 / 操作卡住` 之一，并填写非空文字；统计真相放独立 `course_feedback`，反馈文字联动到课程讨论帖。
+- 0.4.0 还会升级论坛列表为活跃排序：新增 `forum_posts.last_activity_at`，有新回复的普通帖子和课程讨论帖都应自然浮上来。
+- 0.4.0 每日摘要邮件使用 Cloudflare Cron Trigger 触发，按 `Asia/Shanghai` 上一自然日窗口汇总后通过 DirectMail 发送。
 - 论坛还缺作业示例、提问模板等运营内容；不要把受限论坛正文备份提交进仓库。
 - 论坛后续可补更细的管理能力：评论隐藏 / 删除、管理员列表页、用户禁言或更长窗口限流。
-- 前端缺口：首页 / 顶栏 / 课程 Gate 指向 `/courses/enroll`，但报名正文未写（`ENROLL.available=false`，点进去是「待上传」占位）；课程介绍页（非文章 landing）仍待做。
 - 后续仍可加 Turnstile、人机验证、管理员用户列表与更细审计。
 - 卡密后台仍缺单张卡查询、使用记录详情与撤销/调整已发权益。
 - MCP / 外部 API 的窄 REST adapter 暂未做，当前入口是 `/api/mcp`。
@@ -79,11 +82,11 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 优先级从高到低：
 
-1. 由管理员补作业分享引导 / 提问模板，并做学员 / 管理员两视角运营检查。
-2. 邀请一名真实学员按 [mcp-agent-access.md](mcp-agent-access.md) 自助配置 MCP，验证文档是否足够清楚。
-3. 补管理员卡密使用记录详情，支持排查某批次兑换情况。
-4. 课程内容操作下一层便利：可选 frontmatter 解析、批量导入、导入前预览 diff。
-5. 后续若开放窄 REST API，必须复用 Agent token 服务层和现有 entitlement/capability 规则。
+1. 先按论坛互动 v0.4 规格做基础契约：活跃排序、关注帖子、回复点赞、个人中心“关注的帖子”。
+2. 再按课程反馈 v0.4 规格做课程反馈契约：课程页反馈区、课程讨论帖、后台统计、MCP 反馈工具。
+3. 最后接每日摘要：Cloudflare Cron Trigger、DirectMail、退订与幂等发送记录。
+4. 由管理员补作业分享引导 / 提问模板，并做学员 / 管理员两视角运营检查。
+5. 邀请一名真实学员按 [mcp-agent-access.md](mcp-agent-access.md) 自助配置 MCP，验证文档是否足够清楚。
 
 ## 验证命令
 

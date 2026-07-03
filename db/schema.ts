@@ -340,6 +340,9 @@ export const forumPosts = sqliteTable(
       .notNull()
       .default("published"),
     pinnedAt: integer("pinned_at", { mode: "timestamp_ms" }),
+    lastActivityAt: integer("last_activity_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .default(nowMs),
@@ -351,6 +354,7 @@ export const forumPosts = sqliteTable(
     uniqueIndex("forum_posts_slug_unique").on(table.slug),
     index("forum_posts_author_id_idx").on(table.authorId),
     index("forum_posts_status_pinned_idx").on(table.status, table.pinnedAt),
+    index("forum_posts_last_activity_idx").on(table.lastActivityAt),
   ],
 );
 
@@ -404,6 +408,52 @@ export const forumPostTags = sqliteTable(
   ],
 );
 
+export const forumCommentVotes = sqliteTable(
+  "forum_comment_votes",
+  {
+    commentId: text("comment_id")
+      .notNull()
+      .references(() => forumComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    value: integer("value").notNull().default(1),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+  },
+  (table) => [
+    primaryKey({ columns: [table.commentId, table.userId] }),
+    index("forum_comment_votes_user_id_idx").on(table.userId),
+  ],
+);
+
+export const forumPostSubscriptions = sqliteTable(
+  "forum_post_subscriptions",
+  {
+    postId: text("post_id")
+      .notNull()
+      .references(() => forumPosts.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    mutedAt: integer("muted_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+  },
+  (table) => [
+    primaryKey({ columns: [table.postId, table.userId] }),
+    index("forum_post_subscriptions_user_active_idx").on(
+      table.userId,
+      table.mutedAt,
+    ),
+  ],
+);
+
 export const userRelations = relations(user, ({ one, many }) => ({
   profile: one(profiles),
   sessions: many(session),
@@ -411,6 +461,8 @@ export const userRelations = relations(user, ({ one, many }) => ({
   entitlements: many(entitlements),
   posts: many(forumPosts),
   comments: many(forumComments),
+  commentVotes: many(forumCommentVotes),
+  postSubscriptions: many(forumPostSubscriptions),
 }));
 
 export const profileRelations = relations(profiles, ({ one }) => ({

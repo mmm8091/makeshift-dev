@@ -9,7 +9,11 @@ import {
   createPost,
   editComment,
   editPost,
+  followPost,
+  likeComment,
   moderatePost,
+  unfollowPost,
+  unlikeComment,
   type ModerationAction,
   type WriteResult,
 } from "@/lib/forum";
@@ -119,5 +123,62 @@ export async function moderatePostAction(args: {
   }
   revalidatePath(`/forum/t/${args.slug}`);
   revalidatePath("/forum");
+  return { ok: true };
+}
+
+export async function followPostAction(args: {
+  postId: string;
+  slug: string;
+}): Promise<ForumFormState> {
+  const result = await followPost({ ...(await serviceArgs()), postId: args.postId });
+  if (!result.ok) return toFormState(result);
+
+  revalidatePath(`/forum/t/${args.slug}`);
+  revalidatePath("/forum");
+  revalidatePath("/me/followed-posts");
+  return { ok: true };
+}
+
+export async function unfollowPostAction(args: {
+  postId: string;
+  slug: string;
+}): Promise<ForumFormState> {
+  const result = await unfollowPost({
+    ...(await serviceArgs()),
+    postId: args.postId,
+  });
+  if (!result.ok) return toFormState(result);
+
+  revalidatePath(`/forum/t/${args.slug}`);
+  revalidatePath("/forum");
+  revalidatePath("/me/followed-posts");
+  return { ok: true };
+}
+
+export async function likeCommentAction(args: {
+  commentId: string;
+  slug: string;
+}): Promise<ForumFormState> {
+  const result = await likeComment({
+    ...(await serviceArgs()),
+    commentId: args.commentId,
+  });
+  if (!result.ok) return toFormState(result);
+
+  revalidatePath(`/forum/t/${args.slug}`);
+  return { ok: true };
+}
+
+export async function unlikeCommentAction(args: {
+  commentId: string;
+  slug: string;
+}): Promise<ForumFormState> {
+  const result = await unlikeComment({
+    ...(await serviceArgs()),
+    commentId: args.commentId,
+  });
+  if (!result.ok) return toFormState(result);
+
+  revalidatePath(`/forum/t/${args.slug}`);
   return { ok: true };
 }

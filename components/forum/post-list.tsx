@@ -61,6 +61,9 @@ function PostCard({
             <span className="font-serif text-xs text-ink-faint">
               {post.commentCount > 0 ? `${post.commentCount} 条回复` : "还没人回"}
             </span>
+            <span className="font-serif text-xs text-ink-faint">
+              活跃 {new Date(post.lastActivityAt).toLocaleDateString("zh-CN")}
+            </span>
           </div>
         </div>
       </article>

@@ -401,6 +401,19 @@ export function UserCenter({
           </section>
 
           <section className="border-2 border-edge bg-paper-2 p-6">
+            <p className="kicker">论坛</p>
+            <h2 className="mt-2 font-display text-2xl font-black">讨论现场</h2>
+            <div className="mt-5 grid gap-3">
+              <Link
+                href="/me/followed-posts"
+                className="inline-flex w-full items-center justify-center border-2 border-ink bg-paper px-5 py-3 font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
+              >
+                关注的帖子
+              </Link>
+            </div>
+          </section>
+
+          <section className="border-2 border-edge bg-paper-2 p-6">
             <p className="kicker">Agent</p>
             <h2 className="mt-2 font-display text-2xl font-black">访问令牌</h2>
             <div className="mt-5 grid gap-3">
