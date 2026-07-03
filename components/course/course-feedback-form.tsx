@@ -2,10 +2,10 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import {
-  COURSE_FEEDBACK_IDLE,
   submitCourseFeedbackAction,
   withdrawCourseFeedbackAction,
 } from "@/app/courses/feedback-actions";
+import type { CourseFeedbackFormState } from "@/app/courses/feedback-actions";
 import {
   FEEDBACK_BODY_MAX,
   FEEDBACK_STATUS_LABELS,
@@ -13,6 +13,8 @@ import {
   type CourseFeedbackView,
   type FeedbackStatus,
 } from "@/lib/course-feedback-types";
+
+const COURSE_FEEDBACK_IDLE: CourseFeedbackFormState = { ok: false };
 
 export function CourseFeedbackForm({
   sectionSlug,

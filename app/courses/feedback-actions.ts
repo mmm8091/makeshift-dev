@@ -16,8 +16,6 @@ export type CourseFeedbackFormState = {
   fieldErrors?: { status?: string; bodyMd?: string; sectionSlug?: string };
 };
 
-export const COURSE_FEEDBACK_IDLE: CourseFeedbackFormState = { ok: false };
-
 async function serviceArgs() {
   const { env } = await getCloudflareContext({ async: true });
   return { env, requestHeaders: await headers() };
