@@ -26,12 +26,12 @@ export function CourseFeedbackSection({
             href={`/forum/t/${summary.discussionPostSlug}`}
             className="border-2 border-ink bg-paper px-4 py-2 font-serif text-sm font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
           >
-            查看全部讨论 →
+            去论坛查看全部讨论 →
           </Link>
         )}
       </div>
 
-      <div className="mt-5 grid gap-3 border-2 border-edge bg-paper-2 p-5 sm:grid-cols-4">
+      <div className="mt-6 grid gap-3 border-2 border-ink bg-paper-2 p-3 shadow-[4px_4px_0_0_var(--color-edge)] sm:grid-cols-4">
         <FeedbackCount label="全部" value={summary.total} />
         {FEEDBACK_STATUSES.map((item) => (
           <FeedbackCount
@@ -91,9 +91,37 @@ export function CourseFeedbackSection({
 
 function FeedbackCount({ label, value }: { label: string; value: number }) {
   return (
-    <div>
-      <p className="font-serif text-xs font-bold text-ink-faint">{label}</p>
-      <p className="mt-1 font-display text-2xl font-black text-ink">{value}</p>
+    <div className="border-2 border-edge bg-paper px-4 py-4 sm:px-5">
+      <p className="font-serif text-sm font-bold text-ink-soft">{label}</p>
+      <p className="mt-2 font-display text-4xl font-black leading-none text-ink sm:text-5xl">
+        {value}
+      </p>
     </div>
+  );
+}
+
+export function CourseDiscussionCta({
+  discussionPostSlug,
+}: {
+  discussionPostSlug: string;
+}) {
+  return (
+    <section className="mt-16 border-t-2 border-ink pt-8">
+      <p className="kicker">论坛</p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-4 border-2 border-edge bg-paper-2 p-5">
+        <div>
+          <h2 className="font-display text-2xl font-black">这节课的讨论现场</h2>
+          <p className="mt-2 font-serif text-sm text-ink-soft">
+            公开章节的讨论统一放在论坛里，登录和解锁由论坛入口处理。
+          </p>
+        </div>
+        <Link
+          href={`/forum/t/${discussionPostSlug}`}
+          className="border-2 border-ink bg-paper px-5 py-3 font-serif text-sm font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
+        >
+          去论坛查看全部讨论 →
+        </Link>
+      </div>
+    </section>
   );
 }

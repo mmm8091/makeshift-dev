@@ -12,6 +12,16 @@ const COURSE_DISCUSSION_TAG = {
 };
 const COURSE_DISCUSSION_BODY =
   "这是系统自动创建的课程讨论帖。这里可以放顺利、难懂、卡住和补充说明；请不要粘贴 token、卡密、邮箱、手机号或其他秘密。";
+const STATIC_REPO_COURSES = [
+  {
+    slug: "preface",
+    title: "前言：平民编程与创造的时代",
+  },
+  {
+    slug: "01-will",
+    title: "第一讲：树立一个意志",
+  },
+];
 const require = createRequire(import.meta.url);
 const wranglerBin = resolve(
   dirname(require.resolve("wrangler/package.json")),
@@ -77,10 +87,15 @@ function listPublishedCourses() {
       "ORDER BY order_index, slug",
     ].join(" "),
   );
-  return (output?.[0]?.results ?? []).map((row) => ({
+  const dbCourses = (output?.[0]?.results ?? []).map((row) => ({
     slug: String(row.slug),
     title: String(row.title),
   }));
+  const bySlug = new Map();
+  for (const course of [...STATIC_REPO_COURSES, ...dbCourses]) {
+    bySlug.set(course.slug, course);
+  }
+  return [...bySlug.values()];
 }
 
 function assertSystemUser(userId) {

@@ -454,31 +454,61 @@ export function UserCenter({
               >
                 关注的帖子
               </Link>
-              <div className="border-2 border-edge bg-paper p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-display font-bold">每日摘要邮件</p>
+              <div
+                className={`border-2 p-4 ${
+                  dailyDigestEnabled
+                    ? "border-terminal bg-[rgba(58,164,106,0.10)]"
+                    : "border-edge bg-paper"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="font-display text-lg font-black">
+                      每日摘要邮件
+                    </p>
                     <p className="mt-1 font-serif text-xs text-ink-faint">
-                      汇总关注帖的新回复和你的回复收到的赞
+                      关注帖新回复、你的回复收到的赞，次日上午汇成一封
+                    </p>
+                    <p
+                      role="status"
+                      aria-live="polite"
+                      className={`mt-3 inline-flex border-2 px-2.5 py-1 font-serif text-xs font-bold ${
+                        dailyDigestEnabled
+                          ? "border-terminal bg-paper text-terminal"
+                          : "border-ink bg-paper-3 text-ink-soft"
+                      }`}
+                    >
+                      {dailyDigestEnabled ? "正在收信" : "暂不收信"}
                     </p>
                   </div>
                   <button
                     type="button"
+                    aria-pressed={dailyDigestEnabled}
                     onClick={() => void saveDailyDigestPreference(!dailyDigestEnabled)}
                     disabled={isDigestPending}
-                    className={`shrink-0 border-2 px-3 py-1.5 font-serif text-xs font-bold transition-colors disabled:opacity-60 ${
+                    className={`relative h-10 w-20 shrink-0 border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                       dailyDigestEnabled
-                        ? "border-gold bg-[rgba(215,168,63,0.14)] text-gold"
-                        : "border-ink bg-paper text-ink"
+                        ? "border-terminal bg-terminal"
+                        : "border-ink bg-paper-3"
                     }`}
                   >
-                    {dailyDigestEnabled ? "已开启" : "已关闭"}
+                    <span
+                      className={`absolute top-1 h-6 w-8 border-2 bg-paper transition-transform ${
+                        dailyDigestEnabled
+                          ? "left-1 border-terminal translate-x-8"
+                          : "left-1 border-ink translate-x-0"
+                      }`}
+                      aria-hidden
+                    />
+                    <span className="sr-only">
+                      {dailyDigestEnabled ? "关闭每日摘要" : "开启每日摘要"}
+                    </span>
                   </button>
                 </div>
                 {digestNotice && (
                   <p
                     role="status"
-                    className={`mt-2 font-serif text-xs ${
+                    className={`mt-3 font-serif text-xs ${
                       digestNotice.kind === "error" ? "text-red" : "text-terminal"
                     }`}
                   >

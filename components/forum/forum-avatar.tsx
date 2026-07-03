@@ -10,6 +10,20 @@ export function ForumAvatar({
   author: Author;
   className?: string;
 }) {
+  if (author.userId.startsWith("system-") || author.displayName === "草台系统") {
+    return (
+      <div className={cn("overflow-hidden border-2 border-ink bg-paper", className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.svg"
+          alt={author.displayName}
+          loading="lazy"
+          className="h-full w-full object-contain p-1"
+        />
+      </div>
+    );
+  }
+
   if (author.qq) {
     return (
       <div className={cn("overflow-hidden border-2 border-ink bg-paper", className)}>

@@ -15,6 +15,7 @@
     "course:lint": "node scripts/lint-course-markdown.mjs",
     "course:import": "node scripts/import-course-section.mjs",
     "course:discussions:backfill": "node scripts/backfill-course-discussions.mjs",
+    "forum:subscriptions:backfill-authors": "node scripts/backfill-forum-author-subscriptions.mjs",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply makeshift-dev --local",

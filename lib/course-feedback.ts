@@ -320,6 +320,14 @@ async function loadExistingDiscussion(
   return row ?? null;
 }
 
+export async function getCourseDiscussionPostSlug(
+  args: ServiceArgs & { sectionSlug: string },
+): Promise<string | null> {
+  const db = getDb(args.env);
+  const discussion = await loadExistingDiscussion(db, args.sectionSlug);
+  return discussion?.postSlug ?? null;
+}
+
 async function autoFollowDiscussion(db: Db, postId: string, userId: string, now: Date) {
   await db
     .insert(forumPostSubscriptions)
