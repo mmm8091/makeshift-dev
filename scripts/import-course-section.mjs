@@ -9,6 +9,14 @@ import {
 
 const DEFAULT_DATABASE = "makeshift-dev";
 const DEFAULT_ENTITLEMENT = "course:full";
+const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const COURSE_DISCUSSION_TAG = {
+  id: "tag-course-discussion",
+  slug: "course-discussion",
+  name: "课程讨论",
+};
+const COURSE_DISCUSSION_BODY =
+  "这是系统自动创建的课程讨论帖。这里可以放顺利、难懂、卡住和补充说明；请不要粘贴 token、卡密、邮箱、手机号或其他秘密。";
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -53,6 +61,13 @@ const requiredEntitlement =
   visibility === "locked"
     ? args["required-entitlement"] || DEFAULT_ENTITLEMENT
     : args["required-entitlement"] || null;
+const systemUserId = process.env.SYSTEM_USER_ID?.trim() || "";
+if (status === "published") {
+  if (!systemUserId) {
+    fail("发布课程需要设置 SYSTEM_USER_ID，用来自动维护课程讨论帖");
+  }
+  assertSystemUser(systemUserId);
+}
 
 const sql = `
 INSERT INTO course_sections (
@@ -92,6 +107,14 @@ ON CONFLICT(slug) DO UPDATE SET
   order_index = excluded.order_index,
   published_at = excluded.published_at,
   updated_at = excluded.updated_at;
+
+${discussionSql({
+  status,
+  slug: args.slug,
+  title: args.title,
+  systemUserId,
+  now,
+})}
 `;
 
 const tmpFile = resolve("tmp", `import-course-section-${args.slug}.sql`);
@@ -108,7 +131,6 @@ const wranglerArgs = [
   tmpFile,
 ];
 
-const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const result = spawnSync(pnpm, wranglerArgs, {
   stdio: "inherit",
   shell: process.platform === "win32",
@@ -117,6 +139,148 @@ if (result.error) {
   console.error(result.error);
 }
 process.exit(result.status ?? 1);
+
+function assertSystemUser(systemUserId) {
+  const checkSql = [
+    "SELECT profiles.user_id AS user_id",
+    "FROM profiles",
+    "WHERE profiles.user_id =",
+    sqlString(systemUserId),
+    "AND profiles.role = 'admin'",
+    "LIMIT 1",
+  ].join(" ");
+  const result = spawnSync(
+    pnpm,
+    [
+      "wrangler",
+      "d1",
+      "execute",
+      args.database || DEFAULT_DATABASE,
+      args.remote ? "--remote" : "--local",
+      "--command",
+      checkSql,
+      "--json",
+    ],
+    {
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    },
+  );
+  if (result.error) {
+    console.error(result.error);
+    process.exit(1);
+  }
+  if (result.status !== 0) {
+    process.stdout.write(result.stdout || "");
+    process.stderr.write(result.stderr || "");
+    fail("检查 SYSTEM_USER_ID 失败");
+  }
+  const payload = parseWranglerJson(result.stdout);
+  const rows = payload?.[0]?.results ?? [];
+  if (rows.length === 0) {
+    fail("SYSTEM_USER_ID 必须指向一个 admin profile；课程讨论帖不会冒用学员账号");
+  }
+}
+
+function parseWranglerJson(output) {
+  const jsonStart = output.indexOf("[");
+  if (jsonStart < 0) return null;
+  try {
+    return JSON.parse(output.slice(jsonStart));
+  } catch {
+    return null;
+  }
+}
+
+function discussionSql({ status, slug, title, systemUserId, now }) {
+  const discussionTitle = `课程讨论：${title}`;
+  if (status !== "published") {
+    return `
+UPDATE forum_posts
+SET status = 'hidden', updated_at = ${now}
+WHERE id IN (
+  SELECT forum_post_id FROM course_discussion_threads
+  WHERE section_slug = ${sqlString(slug)}
+);
+`;
+  }
+
+  const postId = randomUUID();
+  const postSlug = `course-discussion-${slug}`;
+  return `
+INSERT INTO forum_tags (id, slug, name, hidden_at)
+VALUES (
+  ${sqlString(COURSE_DISCUSSION_TAG.id)},
+  ${sqlString(COURSE_DISCUSSION_TAG.slug)},
+  ${sqlString(COURSE_DISCUSSION_TAG.name)},
+  NULL
+)
+ON CONFLICT(slug) DO NOTHING;
+
+INSERT INTO forum_posts (
+  id,
+  slug,
+  author_id,
+  title,
+  body_md,
+  status,
+  pinned_at,
+  last_activity_at,
+  created_at,
+  updated_at
+)
+SELECT
+  ${sqlString(postId)},
+  ${sqlString(postSlug)},
+  ${sqlString(systemUserId)},
+  ${sqlString(discussionTitle)},
+  ${sqlString(COURSE_DISCUSSION_BODY)},
+  'published',
+  NULL,
+  ${now},
+  ${now},
+  ${now}
+WHERE NOT EXISTS (
+  SELECT 1 FROM course_discussion_threads
+  WHERE section_slug = ${sqlString(slug)}
+);
+
+INSERT INTO course_discussion_threads (
+  section_slug,
+  forum_post_id,
+  created_by,
+  created_at,
+  updated_at
+)
+SELECT
+  ${sqlString(slug)},
+  ${sqlString(postId)},
+  ${sqlString(systemUserId)},
+  ${now},
+  ${now}
+WHERE NOT EXISTS (
+  SELECT 1 FROM course_discussion_threads
+  WHERE section_slug = ${sqlString(slug)}
+);
+
+UPDATE forum_posts
+SET
+  title = ${sqlString(discussionTitle)},
+  body_md = ${sqlString(COURSE_DISCUSSION_BODY)},
+  status = 'published',
+  updated_at = ${now}
+WHERE id IN (
+  SELECT forum_post_id FROM course_discussion_threads
+  WHERE section_slug = ${sqlString(slug)}
+);
+
+INSERT INTO forum_post_tags (post_id, tag_id)
+SELECT forum_post_id, ${sqlString(COURSE_DISCUSSION_TAG.id)}
+FROM course_discussion_threads
+WHERE section_slug = ${sqlString(slug)}
+ON CONFLICT(post_id, tag_id) DO NOTHING;
+`;
+}
 
 function parseArgs(items) {
   const result = {};

@@ -30,6 +30,7 @@ Use the local ignored directory:
 Then publish to D1 with:
 
 ```powershell
+$env:SYSTEM_USER_ID="<admin-user-id>"
 pnpm course:import -- --remote --file "课程文档/1.1：意图驱动开发.md" `
   --slug 1-1-intent-driven-development `
   --title "1.1：意图驱动开发" `
@@ -40,6 +41,8 @@ pnpm course:import -- --remote --file "课程文档/1.1：意图驱动开发.md"
 ```
 
 The script upserts `course_sections` by slug and writes the Markdown into `body_md`.
+For `status=published`, it also maintains the course discussion thread; `SYSTEM_USER_ID`
+must point to an existing admin profile.
 
 ## Agent Editing Locked Course Text
 
@@ -55,6 +58,7 @@ When the user asks an Agent to change a locked course article, use this flow:
 Example:
 
 ```powershell
+$env:SYSTEM_USER_ID="<admin-user-id>"
 pnpm course:import -- --remote --file "课程文档/1.3：提问，以及向AI提问.md" `
   --slug 1-3-asking-questions `
   --title "1.3：提问，以及向AI提问" `

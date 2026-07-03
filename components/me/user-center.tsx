@@ -445,6 +445,12 @@ export function UserCenter({
               >
                 管理论坛标签
               </Link>
+              <Link
+                href="/admin/course-feedback"
+                className="mt-3 inline-flex w-full items-center justify-center border-2 border-ink bg-paper px-5 py-3 font-bold text-ink transition-colors hover:bg-ink hover:text-paper"
+              >
+                查看课程反馈
+              </Link>
             </section>
           )}
         </aside>

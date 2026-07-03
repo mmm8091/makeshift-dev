@@ -23,6 +23,7 @@ import {
 } from "drizzle-orm";
 import { getDb, type Db } from "@/db/client";
 import {
+  courseFeedback,
   forumComments,
   forumCommentVotes,
   forumPosts,
@@ -31,6 +32,10 @@ import {
   forumTags,
   profiles,
 } from "@/db/schema";
+import {
+  FEEDBACK_BODY_MAX,
+  formatCourseFeedbackForumBody,
+} from "@/lib/course-feedback-types";
 import { createAuth } from "@/lib/auth";
 import { CAPABILITY_SCOPES, hasActiveEntitlement } from "@/lib/entitlements";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -382,6 +387,13 @@ function validateBody(bodyMd: string): string | null {
   const b = bodyMd.trim();
   if (b.length === 0) return "正文不能为空";
   if (b.length > BODY_MAX) return `正文不超过 ${BODY_MAX} 字`;
+  return null;
+}
+
+function validateFeedbackBody(bodyMd: string): string | null {
+  const b = bodyMd.trim();
+  if (b.length === 0) return "反馈文字不能为空";
+  if (b.length > FEEDBACK_BODY_MAX) return `反馈文字不超过 ${FEEDBACK_BODY_MAX} 字`;
   return null;
 }
 
@@ -776,25 +788,47 @@ export async function getThread(
   const voteCounts = await loadVoteCounts(db, commentIds);
   const viewerVotes = await loadViewerVotes(db, commentIds, viewer.userId);
   const postFollowed = await isPostFollowed(db, row.id, viewer.userId);
+  const feedbackRows =
+    commentIds.length === 0
+      ? []
+      : await db
+          .select({
+            forumCommentId: courseFeedback.forumCommentId,
+            status: courseFeedback.status,
+            bodyMd: courseFeedback.bodyMd,
+            userId: courseFeedback.userId,
+          })
+          .from(courseFeedback)
+          .where(inArray(courseFeedback.forumCommentId, commentIds));
+  const feedbackByComment = new Map(
+    feedbackRows
+      .filter((feedback) => feedback.forumCommentId)
+      .map((feedback) => [feedback.forumCommentId!, feedback]),
+  );
 
   const comments: Comment[] = commentRows
     .filter((comment) => canSeeStatus(viewer, comment.status, comment.authorId))
-    .map((comment) => ({
-      id: comment.id,
-      author: authorOf({
-        userId: comment.authorId,
-        displayName: comment.displayName,
-        qqNumber: comment.qqNumber,
-      }),
-      bodyMd: comment.status === "published" ? comment.bodyMd : "",
-      status: comment.status,
-      createdAt: toMs(comment.createdAt),
-      updatedAt: toMs(comment.updatedAt),
-      likeCount: voteCounts.get(comment.id) ?? 0,
-      likedByViewer: viewerVotes.has(comment.id),
-      canLike: comment.authorId !== viewer.userId && comment.status === "published",
-      canEdit: canEdit(viewer, comment.authorId),
-    }));
+    .map((comment) => {
+      const syncedFeedback = feedbackByComment.get(comment.id);
+      return {
+        id: comment.id,
+        author: authorOf({
+          userId: comment.authorId,
+          displayName: comment.displayName,
+          qqNumber: comment.qqNumber,
+        }),
+        bodyMd: comment.status === "published" ? comment.bodyMd : "",
+        editBodyMd: syncedFeedback?.bodyMd ?? comment.bodyMd,
+        isCourseFeedback: Boolean(syncedFeedback),
+        status: comment.status,
+        createdAt: toMs(comment.createdAt),
+        updatedAt: toMs(comment.updatedAt),
+        likeCount: voteCounts.get(comment.id) ?? 0,
+        likedByViewer: viewerVotes.has(comment.id),
+        canLike: comment.authorId !== viewer.userId && comment.status === "published",
+        canEdit: canEdit(viewer, comment.authorId),
+      };
+    });
 
   return {
     viewer,
@@ -1037,6 +1071,40 @@ export async function editComment(
   if (!comment) return { ok: false, reason: "invalid", message: "回复不存在" };
   if (!canEdit(viewer, comment.authorId)) {
     return { ok: false, reason: "forbidden", message: "只能编辑自己的回复" };
+  }
+
+  const [syncedFeedback] = await db
+    .select({
+      id: courseFeedback.id,
+      status: courseFeedback.status,
+      withdrawnAt: courseFeedback.withdrawnAt,
+    })
+    .from(courseFeedback)
+    .where(eq(courseFeedback.forumCommentId, comment.id))
+    .limit(1);
+
+  if (syncedFeedback) {
+    if (syncedFeedback.withdrawnAt) {
+      return { ok: false, reason: "invalid", message: "这条反馈已撤回" };
+    }
+    const bodyErr = validateFeedbackBody(args.bodyMd);
+    if (bodyErr) {
+      return { ok: false, reason: "invalid", fieldErrors: { bodyMd: bodyErr } };
+    }
+    const now = new Date();
+    const bodyMd = args.bodyMd.trim();
+    await db
+      .update(courseFeedback)
+      .set({ bodyMd, updatedAt: now })
+      .where(eq(courseFeedback.id, syncedFeedback.id));
+    await db
+      .update(forumComments)
+      .set({
+        bodyMd: formatCourseFeedbackForumBody(syncedFeedback.status, bodyMd),
+        updatedAt: now,
+      })
+      .where(eq(forumComments.id, comment.id));
+    return { ok: true };
   }
 
   const bodyErr = validateBody(args.bodyMd);

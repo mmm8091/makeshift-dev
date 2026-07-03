@@ -326,6 +326,69 @@ export const courseAssets = sqliteTable(
   (table) => [index("course_assets_section_id_idx").on(table.sectionId)],
 );
 
+export const courseDiscussionThreads = sqliteTable(
+  "course_discussion_threads",
+  {
+    sectionSlug: text("section_slug").primaryKey(),
+    forumPostId: text("forum_post_id")
+      .notNull()
+      .references(() => forumPosts.id, { onDelete: "cascade" }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+  },
+  (table) => [
+    uniqueIndex("course_discussion_threads_post_unique").on(table.forumPostId),
+  ],
+);
+
+export const courseFeedback = sqliteTable(
+  "course_feedback",
+  {
+    id: text("id").primaryKey(),
+    sectionSlug: text("section_slug").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: text("status", {
+      enum: ["smooth", "confusing", "blocked"],
+    }).notNull(),
+    bodyMd: text("body_md").notNull(),
+    forumPostId: text("forum_post_id").references(() => forumPosts.id, {
+      onDelete: "set null",
+    }),
+    forumCommentId: text("forum_comment_id").references(() => forumComments.id, {
+      onDelete: "set null",
+    }),
+    withdrawnAt: integer("withdrawn_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+  },
+  (table) => [
+    uniqueIndex("course_feedback_section_user_unique").on(
+      table.sectionSlug,
+      table.userId,
+    ),
+    index("course_feedback_section_status_idx").on(
+      table.sectionSlug,
+      table.status,
+      table.withdrawnAt,
+    ),
+    index("course_feedback_forum_comment_idx").on(table.forumCommentId),
+    index("course_feedback_updated_idx").on(table.updatedAt),
+  ],
+);
+
 export const forumPosts = sqliteTable(
   "forum_posts",
   {

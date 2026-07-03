@@ -39,6 +39,8 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 | MCP / 外部 API | `docs/adr/2026-06-23-mcp-api-token-auth.md`、`docs/草台编子识字班-agent-access-v0.3技术方案.md`、`lib/agent-access-tokens.ts`、`app/me/agent-tokens/page.tsx`、`components/me/agent-token-manager.tsx`、`app/api/me/agent-tokens/route.ts`、`app/api/mcp/route.ts`、`db/schema.ts` 的 `agent_access_tokens` / `agent_access_audit_logs`、`drizzle/migrations/0005_agent_access_tokens.sql` |
 | 课程正文读取 / 导入 | `lib/content.ts`、`app/courses/[slug]/page.tsx`、`app/courses/page.tsx`、`scripts/import-course-section.mjs` |
 | 论坛 v1 | `lib/forum.ts`、`lib/forum-types.ts`、`app/forum/`、`components/forum/`、`app/admin/forum-tags/`、`components/admin/forum-tag-admin-panel.tsx`、`drizzle/migrations/0002_seed_forum_tags.sql`、`drizzle/migrations/0003_forum_tag_visibility.sql` |
+| 论坛互动 v0.4 | `db/schema.ts` 的 `forum_posts.last_activity_at` / `forum_comment_votes` / `forum_post_subscriptions`、`app/me/followed-posts/page.tsx`、`components/forum/follow-post-button.tsx`、`components/forum/comment-like-button.tsx`、`drizzle/migrations/0006_forum_interactions.sql` |
+| 课程反馈 v0.4 | `lib/course-feedback.ts`、`lib/course-feedback-types.ts`、`components/course/course-feedback-section.tsx`、`components/course/course-feedback-form.tsx`、`app/courses/feedback-actions.ts`、`app/admin/course-feedback/`、`scripts/backfill-course-discussions.mjs`、`drizzle/migrations/0007_course_feedback.sql` |
 | 路由加载体验 | `components/quote-loader.tsx`、`components/quote-hold.tsx`、`components/quote-epigraph.tsx`、`app/courses/[slug]/loading.tsx`、`app/forum/loading.tsx`、`app/me/loading.tsx` |
 
 要点提醒：
@@ -48,13 +50,16 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 - MCP / 外部 API 使用用户授权的 Agent 访问令牌：token scope 只是调用上限，实际权限仍实时取用户有效 entitlement / capability；令牌只存 peppered hash，审计日志只存元数据。生产环境需配置 `AGENT_ACCESS_TOKEN_PEPPER` secret。
 - `/me/agent-tokens` 已支持用户创建、复制一次性明文、查看和撤销 Agent 访问令牌；`/api/mcp` 已开放首版工具：基础自检、whoami、entitlement 自查、课程章节表、按 slug 读单篇课程、论坛列表 / 详情、论坛发帖 / 回帖、管理员审计 / token / 用户排障。课程正文不支持批量导出，论坛写入复用 `lib/forum.ts`。对外主工具名使用下划线格式，旧点号名保留为直接 HTTP 兼容别名；学员 / Agent 操作流程见 [mcp-agent-access.md](mcp-agent-access.md)。
 - 论坛 v1：`lib/forum.ts` 负责 session、profiles、entitlement、D1 读写、slug、发帖/回帖限流、作者/管理员授权、软删除与恢复；`/forum` 顶栏入口已恢复。
+- 论坛互动 v0.4 地基已落地：帖子按置顶 + `last_activity_at` 活跃排序；发帖 / 首次回复自动关注，取消关注后不自动恢复；回复点赞禁止自赞；MCP 有显式关注 / 取消关注 / 点赞 / 取消点赞工具。
+- 课程反馈 v0.4 地基已落地：已解锁学员可在课程页提交 / 更新 / 撤回反馈；反馈统计真相在 `course_feedback`，公开同步到课程讨论帖；论坛页编辑同步回复时只改反馈文字，不改状态；管理员可在 `/admin/course-feedback` 查看统计和详情。
+- 课程讨论帖由系统账号维护，运行环境需配置 `SYSTEM_USER_ID`，且该用户必须有 admin profile；课程导入发布时会同步维护讨论帖，历史课程可用 `pnpm course:discussions:backfill -- --remote` 补齐。
 - 论坛默认标签 migration 已在远端 D1 执行：`homework` / `ask` / `share` / `pitfall`。管理员可在 `/admin/forum-tags` 新增、改名、隐藏/恢复标签；学员只能选择未隐藏标签。
 - 远端论坛发布公告帖随版本发布维护；受限论坛正文仍不做仓库备份。
 - 安全限流使用 D1 `rate_limits` 表：认证 POST、验证码相关、兑换、卡密管理、论坛写操作都已接入；key 只存 hash，不存 IP / 邮箱 / 卡密明文。
 - 卡密后台支持生成、批次列表、按批次 + scope 禁用剩余卡密；明文仍只在生成结果里显示一次。
 - DirectMail 成功发送不再逐封打日志；失败日志只保留类型、错误码、requestId、状态码等排障字段。
 - 顶栏登录态**刻意走客户端 `useSession`**，以保留首页 / 课程页的静态渲染。
-- 本地待导入付费正文放 `课程文档/`（已 `.gitignore`），导入用 `pnpm course:import -- --remote ...`，详见 [course-content.md](course-content.md)。
+- 本地待导入付费正文放 `课程文档/`（已 `.gitignore`），导入用 `SYSTEM_USER_ID=<admin-user-id> pnpm course:import -- --remote ...`，详见 [course-content.md](course-content.md)。
 
 ## 管理员账号
 
@@ -68,11 +73,10 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 ## 仍未完成
 
-- 0.4.0 主目标：课程反馈区与后台统计。每节课要求学员选择 `顺利 / 内容难懂 / 操作卡住` 之一，并填写非空文字；统计真相放独立 `course_feedback`，反馈文字联动到课程讨论帖。
-- 0.4.0 还会升级论坛列表为活跃排序：新增 `forum_posts.last_activity_at`，有新回复的普通帖子和课程讨论帖都应自然浮上来。
 - 0.4.0 每日摘要邮件使用 Cloudflare Cron Trigger 触发，按 `Asia/Shanghai` 上一自然日窗口汇总后通过 DirectMail 发送。
+- 0.4.0 每日摘要前仍需补 `notification_preferences`、`daily_digest_deliveries`、退订 token、用户中心开关和 Cron 入口。
 - 论坛还缺作业示例、提问模板等运营内容；不要把受限论坛正文备份提交进仓库。
-- 论坛后续可补更细的管理能力：评论隐藏 / 删除、管理员列表页、用户禁言或更长窗口限流。
+- 论坛后续可补更细的管理能力：评论隐藏 / 删除、用户禁言或更长窗口限流。
 - 后续仍可加 Turnstile、人机验证、管理员用户列表与更细审计。
 - 卡密后台仍缺单张卡查询、使用记录详情与撤销/调整已发权益。
 - MCP / 外部 API 的窄 REST adapter 暂未做，当前入口是 `/api/mcp`。
@@ -82,9 +86,9 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 优先级从高到低：
 
-1. 先按论坛互动 v0.4 规格做基础契约：活跃排序、关注帖子、回复点赞、个人中心“关注的帖子”。
-2. 再按课程反馈 v0.4 规格做课程反馈契约：课程页反馈区、课程讨论帖、后台统计、MCP 反馈工具。
-3. 最后接每日摘要：Cloudflare Cron Trigger、DirectMail、退订与幂等发送记录。
+1. 接每日摘要：Cloudflare Cron Trigger、DirectMail、退订与幂等发送记录。
+2. 用真实学员账号验收课程页反馈：未解锁不显示，已解锁可提交 / 更新 / 撤回，论坛讨论帖同步正确。
+3. 用 MCP checklist 验收课程反馈、关注帖子和回复点赞工具。
 4. 由管理员补作业分享引导 / 提问模板，并做学员 / 管理员两视角运营检查。
 5. 邀请一名真实学员按 [mcp-agent-access.md](mcp-agent-access.md) 自助配置 MCP，验证文档是否足够清楚。
 
@@ -96,6 +100,7 @@ pnpm build
 gh run list --repo mmm8091/makeshift-dev --limit 3
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from user;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from forum_posts; select slug,name,hidden_at from forum_tags;"
+pnpm wrangler d1 execute makeshift-dev --remote --command "select section_slug,count(*) from course_feedback group by section_slug;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select namespace,count(*) from rate_limits group by namespace;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select name from sqlite_master where type='table' and name in ('agent_access_tokens','agent_access_audit_logs');"
 ```

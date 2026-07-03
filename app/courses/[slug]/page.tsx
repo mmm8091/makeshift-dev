@@ -20,6 +20,8 @@ import { CourseMarkdown } from "@/components/markdown";
 import { ChapterNav } from "@/components/chapter-nav";
 import { QuoteEpigraph } from "@/components/quote-epigraph";
 import { QuoteHold } from "@/components/quote-hold";
+import { CourseFeedbackSection } from "@/components/course/course-feedback-section";
+import { getCourseFeedbackSummary } from "@/lib/course-feedback";
 
 export const dynamicParams = true;
 export const dynamic = "force-dynamic";
@@ -74,6 +76,7 @@ export default async function CoursePage({
 
   const unlockedEntitlements = await getViewerEntitlements();
   const body = await getCourseBody(course, slug);
+  const feedbackSummary = body ? await getFeedbackSummary(slug) : null;
 
   const { prev, next } = getAdjacentArticlesFromList(articles, slug);
 
@@ -119,6 +122,8 @@ export default async function CoursePage({
         <Gate course={course} />
       )}
 
+      {feedbackSummary && <CourseFeedbackSection summary={feedbackSummary} />}
+
       {(prev || next) && (
         <nav className="mt-16 grid gap-4 border-t-2 border-ink pt-8 sm:grid-cols-2">
           {prev ? (
@@ -151,6 +156,15 @@ export default async function CoursePage({
       )}
     </article>
   );
+}
+
+async function getFeedbackSummary(slug: string) {
+  const { env } = await getCloudflareContext({ async: true });
+  return getCourseFeedbackSummary({
+    env,
+    requestHeaders: await headers(),
+    sectionSlug: slug,
+  });
 }
 
 async function getCourseContext(slug: string): Promise<{

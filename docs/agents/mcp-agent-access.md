@@ -5,7 +5,7 @@
 适用范围：
 
 - 学员自助连接 Codex 等支持 Streamable HTTP MCP 的客户端。
-- Agent 代表学员读取课程章节表、读取单篇课程、读取论坛、发帖或回帖。
+- Agent 代表学员读取课程章节表、读取单篇课程、读取论坛、发帖、回帖、提交课程反馈、关注帖子或点赞回复。
 - 管理员排查 Agent token、审计元数据和用户 entitlement。
 
 不适用：
@@ -65,6 +65,9 @@ Codex 设置界面可用等价配置：
 6. 选择一个帖子 slug，调用 `forum_read_post`，确认能读取正文与评论。
 7. 调用 `forum_dry_run_create_post`，确认要发的标题、正文、标签可通过校验。
 8. 确认内容无误后再调用 `forum_create_post`。
+9. 调用 `course_feedback_dry_run_submit`，确认课程反馈状态和正文可通过校验。
+10. 调用 `course_feedback_submit`，确认反馈会同步到课程讨论帖。
+11. 调用 `forum_post_follow` / `forum_post_unfollow` 和 `forum_comment_like` / `forum_comment_unlike`，确认显式写工具可用。
 
 写入类工具会真实落库，并复用论坛发帖 / 回帖限流。测试帖完成后由发帖人或管理员按论坛规则处理。
 
@@ -78,11 +81,19 @@ Codex 设置界面可用等价配置：
 - `rate_limit_inspect_self`
 - `course_list_metadata`
 - `course_read_section`
+- `course_feedback_get_summary`
+- `course_feedback_dry_run_submit`
+- `course_feedback_submit`
+- `course_feedback_withdraw`
 - `forum_list_posts`
 - `forum_read_post`
 - `forum_dry_run_create_post`
 - `forum_create_post`
 - `forum_create_comment`
+- `forum_post_follow`
+- `forum_post_unfollow`
+- `forum_comment_like`
+- `forum_comment_unlike`
 - `admin_audit_tail`
 - `admin_token_inspect`
 - `admin_user_lookup`
@@ -107,7 +118,7 @@ Codex 设置界面可用等价配置：
 通常是 entitlement 或 scope 不够：
 
 - 读课程 / 论坛需要 token 有 `mcp:read`，且用户拥有 `course:full` 或对应能力。
-- 发帖 / 回帖需要 token 有 `mcp:write`，且用户拥有 `course:full` 或对应能力。
+- 发帖 / 回帖 / 课程反馈 / 关注 / 点赞需要 token 有 `mcp:write`，且用户拥有 `course:full` 或对应能力。
 - 用户撤销权益后，已有 token 会立即失去对应能力。
 
 ### 管理员工具能不能给普通学员用

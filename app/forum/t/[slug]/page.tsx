@@ -150,7 +150,7 @@ export default async function ThreadPage({
                   canEdit={c.canEdit}
                   commentId={c.id}
                   slug={post.slug}
-                  rawBody={c.bodyMd}
+                  rawBody={c.editBodyMd}
                   likeCount={c.likeCount}
                   likedByViewer={c.likedByViewer}
                   canLike={c.canLike}

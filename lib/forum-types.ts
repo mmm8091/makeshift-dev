@@ -88,6 +88,8 @@ export type Comment = {
   id: string;
   author: Author;
   bodyMd: string;
+  editBodyMd: string;
+  isCourseFeedback: boolean;
   status: ContentStatus;
   createdAt: number;
   updatedAt: number;

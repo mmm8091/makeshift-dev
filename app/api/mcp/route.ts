@@ -27,10 +27,21 @@ import {
   addComment,
   createPost,
   dryRunCreatePost,
+  followPost,
   getThread,
+  likeComment,
   listPosts,
+  unfollowPost,
+  unlikeComment,
   type Viewer,
 } from "@/lib/forum";
+import {
+  dryRunSubmitCourseFeedback,
+  getCourseFeedbackSummary,
+  submitCourseFeedback,
+  withdrawCourseFeedback,
+  type FeedbackStatus,
+} from "@/lib/course-feedback";
 import { consumeRateLimit, getClientIp, requireRateLimit } from "@/lib/rate-limit";
 import { APP_VERSION } from "@/lib/site";
 
@@ -83,6 +94,29 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     requiredScope: "mcp:read",
   },
   {
+    name: "course_feedback_get_summary",
+    description: "读取一节课程的反馈汇总和当前用户反馈",
+    requiredScope: "mcp:read",
+  },
+  {
+    name: "course_feedback_dry_run_submit",
+    description: "校验课程反馈提交参数和公开同步提示，不落库",
+    requiredScope: "mcp:write",
+    write: true,
+  },
+  {
+    name: "course_feedback_submit",
+    description: "提交或更新课程反馈，并公开同步到课程讨论帖",
+    requiredScope: "mcp:write",
+    write: true,
+  },
+  {
+    name: "course_feedback_withdraw",
+    description: "撤回当前用户在某节课的反馈",
+    requiredScope: "mcp:write",
+    write: true,
+  },
+  {
     name: "forum_list_posts",
     description: "分页读取论坛帖子列表摘要",
     requiredScope: "mcp:read",
@@ -95,6 +129,30 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: "forum_dry_run_create_post",
     description: "校验发帖参数和权限，不落库",
+    requiredScope: "mcp:write",
+    write: true,
+  },
+  {
+    name: "forum_post_follow",
+    description: "关注一个论坛帖子",
+    requiredScope: "mcp:write",
+    write: true,
+  },
+  {
+    name: "forum_post_unfollow",
+    description: "取消关注一个论坛帖子",
+    requiredScope: "mcp:write",
+    write: true,
+  },
+  {
+    name: "forum_comment_like",
+    description: "点赞一条论坛回复",
+    requiredScope: "mcp:write",
+    write: true,
+  },
+  {
+    name: "forum_comment_unlike",
+    description: "取消点赞一条论坛回复",
     requiredScope: "mcp:write",
     write: true,
   },
@@ -138,11 +196,19 @@ const LEGACY_TOOL_NAMES = new Map<string, string>([
   ["rate_limit.inspect_self", "rate_limit_inspect_self"],
   ["course.list_metadata", "course_list_metadata"],
   ["course.read_section", "course_read_section"],
+  ["course.feedback.get_summary", "course_feedback_get_summary"],
+  ["course.feedback.dry_run_submit", "course_feedback_dry_run_submit"],
+  ["course.feedback.submit", "course_feedback_submit"],
+  ["course.feedback.withdraw", "course_feedback_withdraw"],
   ["forum.list_posts", "forum_list_posts"],
   ["forum.read_post", "forum_read_post"],
   ["forum.dry_run_create_post", "forum_dry_run_create_post"],
   ["forum.create_post", "forum_create_post"],
   ["forum.create_comment", "forum_create_comment"],
+  ["forum.post_follow", "forum_post_follow"],
+  ["forum.post_unfollow", "forum_post_unfollow"],
+  ["forum.comment_like", "forum_comment_like"],
+  ["forum.comment_unlike", "forum_comment_unlike"],
   ["admin.audit.tail", "admin_audit_tail"],
   ["admin.token.inspect", "admin_token_inspect"],
   ["admin.user.lookup", "admin_user_lookup"],
@@ -352,6 +418,34 @@ async function runTool({
     case "course_read_section":
       assertContext(context);
       return readCourseSection(env, context.userId, getString(args, "slug"));
+    case "course_feedback_get_summary":
+      assertContext(context);
+      return getCourseFeedbackSummary({
+        env,
+        viewer: forumViewer(context),
+        sectionSlug: getString(args, "slug"),
+      });
+    case "course_feedback_dry_run_submit":
+      assertContext(context);
+      return dryRunSubmitCourseFeedback({
+        env,
+        viewer: forumViewer(context),
+        input: getCourseFeedbackInput(args),
+      });
+    case "course_feedback_submit":
+      assertContext(context);
+      return submitCourseFeedback({
+        env,
+        viewer: forumViewer(context),
+        input: getCourseFeedbackInput(args),
+      });
+    case "course_feedback_withdraw":
+      assertContext(context);
+      return withdrawCourseFeedback({
+        env,
+        viewer: forumViewer(context),
+        sectionSlug: getString(args, "slug"),
+      });
     case "forum_list_posts":
       assertContext(context);
       return listPosts({
@@ -381,6 +475,26 @@ async function runTool({
     case "forum_create_comment":
       assertContext(context);
       return createForumComment(env, context, args);
+    case "forum_post_follow":
+      assertContext(context);
+      return followForumPost(env, context, args);
+    case "forum_post_unfollow":
+      assertContext(context);
+      return unfollowForumPost(env, context, args);
+    case "forum_comment_like":
+      assertContext(context);
+      return likeComment({
+        env,
+        viewer: forumViewer(context),
+        commentId: getString(args, "commentId"),
+      });
+    case "forum_comment_unlike":
+      assertContext(context);
+      return unlikeComment({
+        env,
+        viewer: forumViewer(context),
+        commentId: getString(args, "commentId"),
+      });
     case "admin_audit_tail":
       return listAgentAccessAuditTail({
         env,
@@ -476,6 +590,39 @@ async function createForumComment(
     postId,
     bodyMd: getString(args, "bodyMd"),
   });
+}
+
+async function followForumPost(
+  env: CloudflareEnv,
+  context: AgentAccessContext,
+  args: Record<string, unknown>,
+) {
+  const postId = await resolveForumPostId(env, context, args);
+  return followPost({ env, viewer: forumViewer(context), postId });
+}
+
+async function unfollowForumPost(
+  env: CloudflareEnv,
+  context: AgentAccessContext,
+  args: Record<string, unknown>,
+) {
+  const postId = await resolveForumPostId(env, context, args);
+  return unfollowPost({ env, viewer: forumViewer(context), postId });
+}
+
+async function resolveForumPostId(
+  env: CloudflareEnv,
+  context: AgentAccessContext,
+  args: Record<string, unknown>,
+) {
+  const postId = getOptionalString(args, "postId");
+  if (postId) return postId;
+
+  const slug = getOptionalString(args, "slug");
+  if (!slug) throw new ToolError("缺少 postId 或 slug");
+  const thread = await getThread({ env, viewer: forumViewer(context), slug });
+  if (!thread) throw new ToolError("帖子不存在或无权读取", 404);
+  return thread.post.id;
 }
 
 async function lookupUser(env: CloudflareEnv, query: string) {
@@ -594,6 +741,14 @@ function getPostInput(args: Record<string, unknown>) {
     title: getString(args, "title"),
     bodyMd: getString(args, "bodyMd"),
     tagSlugs: Array.isArray(tags) ? tags.map(String) : [],
+  };
+}
+
+function getCourseFeedbackInput(args: Record<string, unknown>) {
+  return {
+    sectionSlug: getString(args, "slug"),
+    status: String(args.status ?? "") as FeedbackStatus,
+    bodyMd: String(args.bodyMd ?? ""),
   };
 }
 
