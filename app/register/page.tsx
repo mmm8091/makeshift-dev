@@ -5,7 +5,20 @@ import { RegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = { title: "注册" };
 
-export default function RegisterPage() {
+function normalizeEmailParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return "";
+  return String(value || "").trim().toLowerCase();
+}
+
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ email?: string | string[]; from?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const initialEmail = normalizeEmailParam(params.email);
+  const fromLogin = params.from === "login";
+
   return (
     <AuthCard
       kicker="注册"
@@ -19,7 +32,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <RegisterForm />
+      <RegisterForm initialEmail={initialEmail} fromLogin={fromLogin} />
     </AuthCard>
   );
 }

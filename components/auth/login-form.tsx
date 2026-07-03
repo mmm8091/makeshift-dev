@@ -3,13 +3,22 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { checkLoginEmailRegistration } from "@/app/login/actions";
 import { Field, OrDivider } from "@/components/auth-card";
 import { GitHubIcon } from "@/components/icons";
 import { authClient } from "@/lib/auth-client";
 
+function getRegisterHref(email: string) {
+  const params = new URLSearchParams();
+  if (email) params.set("email", email);
+  params.set("from", "login");
+  return `/register?${params.toString()}`;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [notice, setNotice] = useState("");
+  const [registerHref, setRegisterHref] = useState<string | null>(null);
   const [isEmailPending, setIsEmailPending] = useState(false);
   const [isGitHubPending, setIsGitHubPending] = useState(false);
 
@@ -18,6 +27,7 @@ export function LoginForm() {
     const password = String(formData.get("password") || "");
     setIsEmailPending(true);
     setNotice("");
+    setRegisterHref(null);
 
     try {
       const { error } = await authClient.signIn.email({
@@ -26,9 +36,23 @@ export function LoginForm() {
       });
 
       if (error) {
-        setNotice(
-          error.message || "登录失败，请检查邮箱、密码，或确认邮箱已经验证",
-        );
+        const emailRegistration = await checkLoginEmailRegistration(email);
+        if (emailRegistration.status === "new") {
+          router.push(getRegisterHref(email));
+          return;
+        }
+
+        if (emailRegistration.status === "invalid") {
+          setNotice("这个邮箱格式不太像邮箱，先检查一下有没有输错。");
+        } else {
+          setNotice(
+            error.message ||
+              "登录失败，请检查邮箱、密码，或确认邮箱已经验证。",
+          );
+          if (emailRegistration.status === "unknown") {
+            setRegisterHref(getRegisterHref(email));
+          }
+        }
         setIsEmailPending(false);
         return;
       }
@@ -38,6 +62,7 @@ export function LoginForm() {
     } catch (error) {
       console.error(error);
       setNotice("登录请求没有完成，请检查网络后再试");
+      setRegisterHref(getRegisterHref(email));
       setIsEmailPending(false);
     }
   };
@@ -45,6 +70,7 @@ export function LoginForm() {
   const signInWithGitHub = async () => {
     setIsGitHubPending(true);
     setNotice("");
+    setRegisterHref(null);
     const { error } = await authClient.signIn.social({
       provider: "github",
       callbackURL: "/me",
@@ -109,6 +135,14 @@ export function LoginForm() {
       {notice && (
         <p className="mt-5 border-l-4 border-red bg-paper-2 px-3 py-2 font-serif text-sm text-ink-soft">
           {notice}
+          {registerHref && (
+            <>
+              <br />
+              <Link href={registerHref} className="font-bold text-red">
+                第一次来？用刚才这个邮箱去注册接验证码
+              </Link>
+            </>
+          )}
         </p>
       )}
     </>

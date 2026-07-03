@@ -6,9 +6,19 @@ import { Field, OrDivider } from "@/components/auth-card";
 import { GitHubIcon } from "@/components/icons";
 import { authClient } from "@/lib/auth-client";
 
-export function RegisterForm() {
+export function RegisterForm({
+  initialEmail = "",
+  fromLogin = false,
+}: {
+  initialEmail?: string;
+  fromLogin?: boolean;
+}) {
   const router = useRouter();
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(
+    fromLogin && initialEmail
+      ? "这个邮箱还没有账号，先注册，再去邮箱接验证码。"
+      : "",
+  );
   const [cooldown, setCooldown] = useState(0);
   const [isEmailPending, setIsEmailPending] = useState(false);
   const [isGitHubPending, setIsGitHubPending] = useState(false);
@@ -168,6 +178,7 @@ export function RegisterForm() {
               type="email"
               name="email"
               autoComplete="email"
+              defaultValue={initialEmail}
               placeholder="you@example.com"
               required
             />
