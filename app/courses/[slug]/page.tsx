@@ -131,7 +131,7 @@ export default async function CoursePage({
         <Gate course={course} />
       )}
 
-      {feedbackSummary && !course.public ? (
+      {feedbackSummary ? (
         <CourseFeedbackSection summary={feedbackSummary} />
       ) : discussionPostSlug ? (
         <CourseDiscussionCta discussionPostSlug={discussionPostSlug} />
