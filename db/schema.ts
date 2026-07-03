@@ -517,6 +517,50 @@ export const forumPostSubscriptions = sqliteTable(
   ],
 );
 
+export const notificationPreferences = sqliteTable("notification_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  dailyDigestEnabled: integer("daily_digest_enabled", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  unsubscribedAt: integer("unsubscribed_at", { mode: "timestamp_ms" }),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(nowMs),
+});
+
+export const dailyDigestDeliveries = sqliteTable(
+  "daily_digest_deliveries",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    windowStart: integer("window_start", { mode: "timestamp_ms" }).notNull(),
+    windowEnd: integer("window_end", { mode: "timestamp_ms" }).notNull(),
+    status: text("status", {
+      enum: ["pending", "sent", "failed", "skipped"],
+    }).notNull(),
+    sentAt: integer("sent_at", { mode: "timestamp_ms" }),
+    errorCode: text("error_code"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(nowMs),
+  },
+  (table) => [
+    uniqueIndex("daily_digest_deliveries_user_window_unique").on(
+      table.userId,
+      table.windowStart,
+      table.windowEnd,
+    ),
+    index("daily_digest_deliveries_status_idx").on(table.status),
+  ],
+);
+
 export const userRelations = relations(user, ({ one, many }) => ({
   profile: one(profiles),
   sessions: many(session),
@@ -526,6 +570,8 @@ export const userRelations = relations(user, ({ one, many }) => ({
   comments: many(forumComments),
   commentVotes: many(forumCommentVotes),
   postSubscriptions: many(forumPostSubscriptions),
+  notificationPreference: one(notificationPreferences),
+  dailyDigestDeliveries: many(dailyDigestDeliveries),
 }));
 
 export const profileRelations = relations(profiles, ({ one }) => ({

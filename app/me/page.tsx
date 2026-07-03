@@ -7,6 +7,7 @@ import { UserCenter } from "@/components/me/user-center";
 import { getDb } from "@/db/client";
 import { entitlements, profiles } from "@/db/schema";
 import { createAuth } from "@/lib/auth";
+import { getDailyDigestPreference } from "@/lib/daily-digest";
 
 export const metadata: Metadata = { title: "用户中心" };
 
@@ -38,6 +39,10 @@ export default async function MePage() {
     .select({ scope: entitlements.scope })
     .from(entitlements)
     .where(eq(entitlements.userId, session.user.id));
+  const notificationPreference = await getDailyDigestPreference({
+    env,
+    userId: session.user.id,
+  });
 
   return (
     <UserCenter
@@ -54,6 +59,7 @@ export default async function MePage() {
         role: profile?.role || "student",
       }}
       entitlementScopes={userEntitlements.map((item) => item.scope)}
+      dailyDigestEnabled={notificationPreference.dailyDigestEnabled}
     />
   );
 }

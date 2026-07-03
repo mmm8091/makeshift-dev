@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "makeshift-dev",
   "account_id": "370c0a6a58a36a7e781de20d1a257ac2",
-  "main": ".open-next/worker.js",
+  "main": "worker.ts",
   "compatibility_date": "2026-06-21",
   "compatibility_flags": [
     "nodejs_compat",
@@ -28,6 +28,11 @@
       "service": "makeshift-dev"
     }
   ],
+  "triggers": {
+    "crons": [
+      "0 1 * * *"
+    ]
+  },
   "d1_databases": [
     {
       "binding": "DB",

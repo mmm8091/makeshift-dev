@@ -41,6 +41,7 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 | 论坛 v1 | `lib/forum.ts`、`lib/forum-types.ts`、`app/forum/`、`components/forum/`、`app/admin/forum-tags/`、`components/admin/forum-tag-admin-panel.tsx`、`drizzle/migrations/0002_seed_forum_tags.sql`、`drizzle/migrations/0003_forum_tag_visibility.sql` |
 | 论坛互动 v0.4 | `db/schema.ts` 的 `forum_posts.last_activity_at` / `forum_comment_votes` / `forum_post_subscriptions`、`app/me/followed-posts/page.tsx`、`components/forum/follow-post-button.tsx`、`components/forum/comment-like-button.tsx`、`drizzle/migrations/0006_forum_interactions.sql` |
 | 课程反馈 v0.4 | `lib/course-feedback.ts`、`lib/course-feedback-types.ts`、`components/course/course-feedback-section.tsx`、`components/course/course-feedback-form.tsx`、`app/courses/feedback-actions.ts`、`app/admin/course-feedback/`、`scripts/backfill-course-discussions.mjs`、`drizzle/migrations/0007_course_feedback.sql` |
+| 每日摘要 v0.4 | `lib/daily-digest.ts`、`app/api/me/notification-preferences/route.ts`、`app/api/notifications/daily-digest/unsubscribe/route.ts`、`worker.ts`、`drizzle/migrations/0008_daily_digest.sql` |
 | 路由加载体验 | `components/quote-loader.tsx`、`components/quote-hold.tsx`、`components/quote-epigraph.tsx`、`app/courses/[slug]/loading.tsx`、`app/forum/loading.tsx`、`app/me/loading.tsx` |
 
 要点提醒：
@@ -53,6 +54,7 @@ Cloudflare Worker secrets 已在控制台配置，不要写入仓库或日志。
 - 论坛互动 v0.4 地基已落地：帖子按置顶 + `last_activity_at` 活跃排序；发帖 / 首次回复自动关注，取消关注后不自动恢复；回复点赞禁止自赞；MCP 有显式关注 / 取消关注 / 点赞 / 取消点赞工具。
 - 课程反馈 v0.4 地基已落地：已解锁学员可在课程页提交 / 更新 / 撤回反馈；反馈统计真相在 `course_feedback`，公开同步到课程讨论帖；论坛页编辑同步回复时只改反馈文字，不改状态；管理员可在 `/admin/course-feedback` 查看统计和详情。
 - 课程讨论帖由系统账号维护，运行环境需配置 `SYSTEM_USER_ID`，且该用户必须有 admin profile；课程导入发布时会同步维护讨论帖，历史课程可用 `pnpm course:discussions:backfill -- --remote` 补齐。
+- 每日摘要 v0.4 已落地：`wrangler.jsonc` 配置 `0 1 * * *`（北京时间约 09:00）触发 `worker.ts` 的 `scheduled` handler；摘要只发给 email verified、仍有 `course:full`、未关闭摘要且有新动态的用户；退订链接只关闭每日摘要，不取消关注帖。
 - 论坛默认标签 migration 已在远端 D1 执行：`homework` / `ask` / `share` / `pitfall`。管理员可在 `/admin/forum-tags` 新增、改名、隐藏/恢复标签；学员只能选择未隐藏标签。
 - 远端论坛发布公告帖随版本发布维护；受限论坛正文仍不做仓库备份。
 - 安全限流使用 D1 `rate_limits` 表：认证 POST、验证码相关、兑换、卡密管理、论坛写操作都已接入；key 只存 hash，不存 IP / 邮箱 / 卡密明文。
@@ -73,8 +75,7 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 ## 仍未完成
 
-- 0.4.0 每日摘要邮件使用 Cloudflare Cron Trigger 触发，按 `Asia/Shanghai` 上一自然日窗口汇总后通过 DirectMail 发送。
-- 0.4.0 每日摘要前仍需补 `notification_preferences`、`daily_digest_deliveries`、退订 token、用户中心开关和 Cron 入口。
+- 0.4.0 还需要生产验收每日摘要真实发送；本地 Windows 无法完整跑 `opennextjs-cloudflare build`，已知失败点是 OpenNext 在 Windows 创建 symlink，CI/Linux 环境应按部署流水线验证。
 - 论坛还缺作业示例、提问模板等运营内容；不要把受限论坛正文备份提交进仓库。
 - 论坛后续可补更细的管理能力：评论隐藏 / 删除、用户禁言或更长窗口限流。
 - 后续仍可加 Turnstile、人机验证、管理员用户列表与更细审计。
@@ -86,9 +87,9 @@ pnpm wrangler d1 execute makeshift-dev --remote --command "select email,name,ema
 
 优先级从高到低：
 
-1. 接每日摘要：Cloudflare Cron Trigger、DirectMail、退订与幂等发送记录。
-2. 用真实学员账号验收课程页反馈：未解锁不显示，已解锁可提交 / 更新 / 撤回，论坛讨论帖同步正确。
-3. 用 MCP checklist 验收课程反馈、关注帖子和回复点赞工具。
+1. 用真实学员账号验收课程页反馈：未解锁不显示，已解锁可提交 / 更新 / 撤回，论坛讨论帖同步正确。
+2. 用 MCP checklist 验收课程反馈、关注帖子和回复点赞工具。
+3. 部署后观察第一次每日摘要 cron：确认 `daily_digest_deliveries` 只记录元数据，失败不含邮件正文。
 4. 由管理员补作业分享引导 / 提问模板，并做学员 / 管理员两视角运营检查。
 5. 邀请一名真实学员按 [mcp-agent-access.md](mcp-agent-access.md) 自助配置 MCP，验证文档是否足够清楚。
 
@@ -101,6 +102,7 @@ gh run list --repo mmm8091/makeshift-dev --limit 3
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from user;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select count(*) from forum_posts; select slug,name,hidden_at from forum_tags;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select section_slug,count(*) from course_feedback group by section_slug;"
+pnpm wrangler d1 execute makeshift-dev --remote --command "select status,count(*) from daily_digest_deliveries group by status;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select namespace,count(*) from rate_limits group by namespace;"
 pnpm wrangler d1 execute makeshift-dev --remote --command "select name from sqlite_master where type='table' and name in ('agent_access_tokens','agent_access_audit_logs');"
 ```

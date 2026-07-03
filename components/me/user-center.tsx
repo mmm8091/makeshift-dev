@@ -24,6 +24,7 @@ type UserCenterProps = {
   user: UserCenterUser;
   profile: UserCenterProfile;
   entitlementScopes: string[];
+  dailyDigestEnabled: boolean;
 };
 
 /** 提示语带成败语义，决定颜色与读屏播报。 */
@@ -45,6 +46,7 @@ export function UserCenter({
   user,
   profile: initialProfile,
   entitlementScopes,
+  dailyDigestEnabled: initialDailyDigestEnabled,
 }: UserCenterProps) {
   const router = useRouter();
   const [profile, setProfile] = useState(initialProfile);
@@ -60,6 +62,11 @@ export function UserCenter({
   const [isProfilePending, setIsProfilePending] = useState(false);
   const [isRedeemPending, setIsRedeemPending] = useState(false);
   const [isSignOutPending, setIsSignOutPending] = useState(false);
+  const [dailyDigestEnabled, setDailyDigestEnabled] = useState(
+    initialDailyDigestEnabled,
+  );
+  const [isDigestPending, setIsDigestPending] = useState(false);
+  const [digestNotice, setDigestNotice] = useState<Notice>(null);
 
   const trimmedName = form.displayName.trim();
   const trimmedQq = form.qqNumber.trim();
@@ -163,6 +170,43 @@ export function UserCenter({
     await authClient.signOut();
     router.push("/login");
     router.refresh();
+  };
+
+  const saveDailyDigestPreference = async (enabled: boolean) => {
+    if (isDigestPending) return;
+    const previous = dailyDigestEnabled;
+    setDailyDigestEnabled(enabled);
+    setIsDigestPending(true);
+    setDigestNotice(null);
+
+    try {
+      const response = await fetch("/api/me/notification-preferences", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dailyDigestEnabled: enabled }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        dailyDigestEnabled?: boolean;
+      };
+      if (!response.ok || typeof data.dailyDigestEnabled !== "boolean") {
+        setDailyDigestEnabled(previous);
+        setDigestNotice({ kind: "error", text: data.error || "摘要设置保存失败" });
+        return;
+      }
+      setDailyDigestEnabled(data.dailyDigestEnabled);
+      setDigestNotice({
+        kind: "ok",
+        text: data.dailyDigestEnabled ? "每日摘要已开启" : "每日摘要已关闭",
+      });
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setDailyDigestEnabled(previous);
+      setDigestNotice({ kind: "error", text: "摘要设置请求没有完成" });
+    } finally {
+      setIsDigestPending(false);
+    }
   };
 
   return (
@@ -410,6 +454,38 @@ export function UserCenter({
               >
                 关注的帖子
               </Link>
+              <div className="border-2 border-edge bg-paper p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-display font-bold">每日摘要邮件</p>
+                    <p className="mt-1 font-serif text-xs text-ink-faint">
+                      汇总关注帖的新回复和你的回复收到的赞
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void saveDailyDigestPreference(!dailyDigestEnabled)}
+                    disabled={isDigestPending}
+                    className={`shrink-0 border-2 px-3 py-1.5 font-serif text-xs font-bold transition-colors disabled:opacity-60 ${
+                      dailyDigestEnabled
+                        ? "border-gold bg-[rgba(215,168,63,0.14)] text-gold"
+                        : "border-ink bg-paper text-ink"
+                    }`}
+                  >
+                    {dailyDigestEnabled ? "已开启" : "已关闭"}
+                  </button>
+                </div>
+                {digestNotice && (
+                  <p
+                    role="status"
+                    className={`mt-2 font-serif text-xs ${
+                      digestNotice.kind === "error" ? "text-red" : "text-terminal"
+                    }`}
+                  >
+                    {digestNotice.text}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
 
