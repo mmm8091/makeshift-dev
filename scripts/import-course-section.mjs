@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import {
   formatFindings,
   lintMarkdownFile,
@@ -9,7 +10,12 @@ import {
 
 const DEFAULT_DATABASE = "makeshift-dev";
 const DEFAULT_ENTITLEMENT = "course:full";
-const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const require = createRequire(import.meta.url);
+const wranglerBin = resolve(
+  dirname(require.resolve("wrangler/package.json")),
+  "bin",
+  "wrangler.js",
+);
 const COURSE_DISCUSSION_TAG = {
   id: "tag-course-discussion",
   slug: "course-discussion",
@@ -122,7 +128,7 @@ mkdirSync(dirname(tmpFile), { recursive: true });
 writeFileSync(tmpFile, sql, "utf8");
 
 const wranglerArgs = [
-  "wrangler",
+  wranglerBin,
   "d1",
   "execute",
   args.database || DEFAULT_DATABASE,
@@ -131,9 +137,8 @@ const wranglerArgs = [
   tmpFile,
 ];
 
-const result = spawnSync(pnpm, wranglerArgs, {
+const result = spawnSync(process.execPath, wranglerArgs, {
   stdio: "inherit",
-  shell: process.platform === "win32",
 });
 if (result.error) {
   console.error(result.error);
@@ -150,9 +155,9 @@ function assertSystemUser(systemUserId) {
     "LIMIT 1",
   ].join(" ");
   const result = spawnSync(
-    pnpm,
+    process.execPath,
     [
-      "wrangler",
+      wranglerBin,
       "d1",
       "execute",
       args.database || DEFAULT_DATABASE,
@@ -163,7 +168,6 @@ function assertSystemUser(systemUserId) {
     ],
     {
       encoding: "utf8",
-      shell: process.platform === "win32",
     },
   );
   if (result.error) {

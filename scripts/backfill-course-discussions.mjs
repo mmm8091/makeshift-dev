@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 
 const DEFAULT_DATABASE = "makeshift-dev";
 const COURSE_DISCUSSION_TAG = {
@@ -11,7 +12,12 @@ const COURSE_DISCUSSION_TAG = {
 };
 const COURSE_DISCUSSION_BODY =
   "这是系统自动创建的课程讨论帖。这里可以放顺利、难懂、卡住和补充说明；请不要粘贴 token、卡密、邮箱、手机号或其他秘密。";
-const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const require = createRequire(import.meta.url);
+const wranglerBin = resolve(
+  dirname(require.resolve("wrangler/package.json")),
+  "bin",
+  "wrangler.js",
+);
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -47,9 +53,9 @@ mkdirSync(dirname(tmpFile), { recursive: true });
 writeFileSync(tmpFile, sql, "utf8");
 
 const result = spawnSync(
-  pnpm,
+  process.execPath,
   [
-    "wrangler",
+    wranglerBin,
     "d1",
     "execute",
     database,
@@ -57,7 +63,7 @@ const result = spawnSync(
     "--file",
     tmpFile,
   ],
-  { stdio: "inherit", shell: process.platform === "win32" },
+  { stdio: "inherit" },
 );
 if (result.error) console.error(result.error);
 process.exit(result.status ?? 1);
@@ -95,9 +101,9 @@ function assertSystemUser(userId) {
 
 function executeJson(command) {
   const result = spawnSync(
-    pnpm,
+    process.execPath,
     [
-      "wrangler",
+      wranglerBin,
       "d1",
       "execute",
       database,
@@ -106,7 +112,7 @@ function executeJson(command) {
       command,
       "--json",
     ],
-    { encoding: "utf8", shell: process.platform === "win32" },
+    { encoding: "utf8" },
   );
   if (result.error) {
     console.error(result.error);
