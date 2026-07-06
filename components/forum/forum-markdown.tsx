@@ -1,5 +1,7 @@
 import ReactMarkdown, { type Components } from "react-markdown";
+import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import remarkCjkFriendly from "remark-cjk-friendly";
 
 /**
@@ -7,6 +9,7 @@ import remarkCjkFriendly from "remark-cjk-friendly";
  *
  * 安全（规格 §6）：
  * - **不引入 `rehype-raw`**：原始 HTML 不渲染，杜绝存储型 XSS（与可信的课程正文区分）。
+ * - 数学公式只支持 Markdown/LaTeX 语法，经 KaTeX 渲染；不把用户 HTML 当成标签执行。
  * - 链接做协议白名单（仅 http/https/mailto 与站内相对路径），其余一律剥成空。
  * - 外链 `rel="ugc nofollow noreferrer"`，不给用户内容传递权重 / referrer。
  *
@@ -82,7 +85,8 @@ export function ForumMarkdown({ markdown }: { markdown: string }) {
   return (
     <div className="prose-letterpress text-[1rem] leading-[1.9]">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkCjkFriendly]}
+        remarkPlugins={[remarkMath, remarkGfm, remarkCjkFriendly]}
+        rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false }]]}
         urlTransform={safeUrl}
         components={components}
       >
