@@ -3,6 +3,13 @@ import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkCjkFriendly from "remark-cjk-friendly";
+import {
+  MarkdownTable,
+  MarkdownTableCell,
+  MarkdownTableHead,
+  MarkdownTableHeaderCell,
+  MarkdownTableRow,
+} from "@/components/markdown-table";
 
 /**
  * 论坛正文渲染（用户提交内容）。
@@ -79,6 +86,13 @@ const components: Components = {
         className="my-5 block max-w-full border-2 border-ink"
       />
     ) : null,
+  table: ({ children }) => (
+    <MarkdownTable density="forum">{children}</MarkdownTable>
+  ),
+  thead: MarkdownTableHead,
+  tr: MarkdownTableRow,
+  th: (props) => <MarkdownTableHeaderCell {...props} density="forum" />,
+  td: (props) => <MarkdownTableCell {...props} density="forum" />,
 };
 
 export function ForumMarkdown({ markdown }: { markdown: string }) {

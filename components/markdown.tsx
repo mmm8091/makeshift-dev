@@ -3,6 +3,13 @@ import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import remarkCjkFriendly from "remark-cjk-friendly";
+import {
+  MarkdownTable,
+  MarkdownTableCell,
+  MarkdownTableHead,
+  MarkdownTableHeaderCell,
+  MarkdownTableRow,
+} from "@/components/markdown-table";
 
 /** 课程正文渲染：把 Markdown 映射到暖纸讲义版式（霞鹜文楷正文 + 黑体小节标题）。 */
 const components: Components = {
@@ -61,6 +68,13 @@ const components: Components = {
         className="my-8 block w-full border-2 border-ink"
       />
     ) : null,
+  table: ({ children }) => (
+    <MarkdownTable density="course">{children}</MarkdownTable>
+  ),
+  thead: MarkdownTableHead,
+  tr: MarkdownTableRow,
+  th: (props) => <MarkdownTableHeaderCell {...props} density="course" />,
+  td: (props) => <MarkdownTableCell {...props} density="course" />,
 };
 
 export function CourseMarkdown({ markdown }: { markdown: string }) {
