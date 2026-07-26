@@ -1,8 +1,13 @@
 import ReactMarkdown, { type Components } from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import remarkCjkFriendly from "remark-cjk-friendly";
+import {
+  MarkdownCodeBlock,
+  MarkdownInlineOrBlockCode,
+} from "@/components/markdown-code-block";
 import {
   MarkdownTable,
   MarkdownTableCell,
@@ -10,6 +15,7 @@ import {
   MarkdownTableHeaderCell,
   MarkdownTableRow,
 } from "@/components/markdown-table";
+import { markdownHighlightOptions } from "@/lib/markdown-highlight";
 
 /** 课程正文渲染：把 Markdown 映射到暖纸讲义版式（霞鹜文楷正文 + 黑体小节标题）。 */
 const components: Components = {
@@ -63,10 +69,13 @@ const components: Components = {
   ol: ({ children }) => (
     <ol className="my-4 list-decimal space-y-2 pl-6">{children}</ol>
   ),
-  code: ({ children }) => (
-    <code className="rounded-sm bg-paper-3 px-1.5 py-0.5 font-mono text-[0.9em]">
+  pre: ({ children, node }) => (
+    <MarkdownCodeBlock node={node} density="course">
       {children}
-    </code>
+    </MarkdownCodeBlock>
+  ),
+  code: ({ node: _node, ...props }) => (
+    <MarkdownInlineOrBlockCode {...props} />
   ),
   img: ({ src, alt }) =>
     typeof src === "string" ? (
@@ -94,7 +103,10 @@ export function CourseMarkdown({ markdown }: { markdown: string }) {
     <div className="prose-letterpress">
       <ReactMarkdown
         remarkPlugins={[remarkMath, remarkGfm, remarkCjkFriendly]}
-        rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false }]]}
+        rehypePlugins={[
+          [rehypeKatex, { strict: false, throwOnError: false }],
+          [rehypeHighlight, markdownHighlightOptions],
+        ]}
         components={components}
       >
         {bodyMarkdown}

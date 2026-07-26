@@ -208,6 +208,189 @@
     text-decoration: none;
   }
 
+  /* Markdown 围栏代码：配置/源码像工位打印稿，终端输出切换为深墨工作台。 */
+  .markdown-code-block {
+    margin-block: 2rem;
+    overflow: hidden;
+    border: 2px solid var(--color-ink);
+    background: var(--color-paper-2);
+    font-family: var(--font-mono);
+    -webkit-text-stroke: 0;
+  }
+  .markdown-code-block--forum {
+    margin-block: 1.25rem;
+  }
+  .markdown-code-caption {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: stretch;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--color-ink);
+    background: var(--color-paper-3);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .markdown-code-language {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding-inline: 0.9rem;
+  }
+  .markdown-code-language::before {
+    width: 3px;
+    height: 1.15rem;
+    background: var(--color-red);
+    content: "";
+  }
+  .markdown-code-copy {
+    display: inline-flex;
+    min-width: 4.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-left: 2px solid var(--color-ink);
+    padding-inline: 0.8rem;
+    color: inherit;
+    cursor: pointer;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+  .markdown-code-copy:hover {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+  .markdown-code-copy:focus-visible {
+    outline: 3px solid var(--color-red);
+    outline-offset: -5px;
+  }
+  .markdown-code-block pre {
+    max-width: 100%;
+    margin: 0;
+    overflow-x: auto;
+    padding: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.75;
+    tab-size: 2;
+  }
+  .markdown-code-block pre code {
+    display: block;
+    min-width: max-content;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    white-space: pre;
+  }
+  .markdown-code-block[data-wrap="true"] pre code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  .markdown-code-block--terminal {
+    border-color: var(--color-ink);
+    background: #17251f;
+    color: #f2ead7;
+  }
+  .markdown-code-block--terminal .markdown-code-caption {
+    border-color: #506259;
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+  .markdown-code-block--terminal .markdown-code-copy {
+    border-color: #6e7d74;
+  }
+  .markdown-code-block--terminal .markdown-code-copy:hover {
+    background: var(--color-terminal);
+    color: #102019;
+  }
+
+  /* highlight.js：低饱和四色，保留讲义的墨、红、金、青关系。 */
+  .markdown-code-block .hljs-comment,
+  .markdown-code-block .hljs-quote {
+    color: var(--color-ink-faint);
+    font-style: italic;
+  }
+  .markdown-code-block .hljs-keyword,
+  .markdown-code-block .hljs-selector-tag,
+  .markdown-code-block .hljs-literal,
+  .markdown-code-block .hljs-section {
+    color: var(--color-red-deep);
+    font-weight: 700;
+  }
+  .markdown-code-block .hljs-string,
+  .markdown-code-block .hljs-title,
+  .markdown-code-block .hljs-name,
+  .markdown-code-block .hljs-attribute {
+    color: #276c50;
+  }
+  .markdown-code-block .hljs-number,
+  .markdown-code-block .hljs-symbol,
+  .markdown-code-block .hljs-bullet,
+  .markdown-code-block .hljs-variable {
+    color: #865d0c;
+  }
+  .markdown-code-block .hljs-built_in,
+  .markdown-code-block .hljs-type,
+  .markdown-code-block .hljs-meta {
+    color: #126b76;
+  }
+  .markdown-code-block--terminal .hljs-comment,
+  .markdown-code-block--terminal .hljs-quote {
+    color: #9baba1;
+  }
+  .markdown-code-block--terminal .hljs-keyword,
+  .markdown-code-block--terminal .hljs-selector-tag,
+  .markdown-code-block--terminal .hljs-literal,
+  .markdown-code-block--terminal .hljs-section {
+    color: #ff8c7d;
+  }
+  .markdown-code-block--terminal .hljs-string,
+  .markdown-code-block--terminal .hljs-title,
+  .markdown-code-block--terminal .hljs-name,
+  .markdown-code-block--terminal .hljs-attribute {
+    color: #a5dfa9;
+  }
+  .markdown-code-block--terminal .hljs-number,
+  .markdown-code-block--terminal .hljs-symbol,
+  .markdown-code-block--terminal .hljs-bullet,
+  .markdown-code-block--terminal .hljs-variable {
+    color: #f2c96d;
+  }
+  .markdown-code-block--terminal .hljs-built_in,
+  .markdown-code-block--terminal .hljs-type,
+  .markdown-code-block--terminal .hljs-meta {
+    color: #7ed5dc;
+  }
+  @media (max-width: 40rem) {
+    .markdown-code-block {
+      margin-block: 1.5rem;
+    }
+    .markdown-code-block pre {
+      padding: 1rem;
+      font-size: 0.8125rem;
+      line-height: 1.7;
+    }
+    .markdown-code-language {
+      padding-inline: 0.7rem;
+    }
+    .markdown-code-copy {
+      min-width: 4.25rem;
+      padding-inline: 0.65rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .markdown-code-copy {
+      transition: none;
+    }
+  }
+
   /* 霞鹜文楷无真粗体：用极细同色描边给衬线正文加一点墨重，解决"太瘦" */
   .ink-bold {
     -webkit-text-stroke: 0.3px currentColor;
