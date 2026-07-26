@@ -16,12 +16,17 @@ const components: Components = {
   h1: ({ children }) => (
     <h2 className="mt-12 mb-4 font-display text-2xl font-black">{children}</h2>
   ),
-  h2: ({ children }) => (
-    <h2 className="mt-14 mb-4 font-display text-2xl font-black">
-      <span className="text-red">／ </span>
-      {children}
-    </h2>
-  ),
+  h2: ({ children, id, className, node: _node, ...props }) =>
+    id === "footnote-label" ? (
+      <h2 id={id} className={className} {...props}>
+        {children}
+      </h2>
+    ) : (
+      <h2 className="mt-14 mb-4 font-display text-2xl font-black">
+        <span className="text-red">／ </span>
+        {children}
+      </h2>
+    ),
   h3: ({ children }) => (
     <h3 className="mt-12 mb-3 border-t-2 border-ink pt-8 font-display text-xl font-extrabold">
       {children}
@@ -37,16 +42,21 @@ const components: Components = {
       {children}
     </blockquote>
   ),
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="font-semibold text-red underline underline-offset-2"
-    >
-      {children}
-    </a>
-  ),
+  a: ({ href, children, node: _node, className: _className, ...props }) => {
+    const isPageAnchor = typeof href === "string" && href.startsWith("#");
+
+    return (
+      <a
+        {...props}
+        href={href}
+        target={isPageAnchor ? undefined : "_blank"}
+        rel={isPageAnchor ? undefined : "noreferrer"}
+        className="font-semibold text-red underline underline-offset-2"
+      >
+        {children}
+      </a>
+    );
+  },
   ul: ({ children }) => (
     <ul className="my-4 list-disc space-y-2 pl-6">{children}</ul>
   ),

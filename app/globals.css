@@ -151,6 +151,62 @@
   .prose-letterpress p {
     margin-block: 1.1em;
   }
+  .prose-letterpress sup a[href^="#user-content-fn-"] {
+    margin-left: 0.12em;
+    font-family: var(--font-display);
+    font-size: 0.78em;
+    font-weight: 900;
+    text-decoration: none;
+  }
+  .prose-letterpress [data-footnotes="true"] {
+    position: relative;
+    margin-top: 3rem;
+    border-top: 2px solid var(--color-edge);
+    padding-top: 2.25rem;
+    color: var(--color-ink-soft);
+    font-size: 0.875rem;
+    line-height: 1.75;
+  }
+  .prose-letterpress [data-footnotes="true"]::before {
+    position: absolute;
+    top: 0.65rem;
+    left: 0;
+    color: var(--color-red);
+    content: "更新注";
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+  }
+  .prose-letterpress [data-footnotes="true"] #footnote-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .prose-letterpress [data-footnotes="true"] ol {
+    margin: 0;
+    list-style: decimal;
+    padding-left: 1.5rem;
+  }
+  .prose-letterpress [data-footnotes="true"] li {
+    padding-left: 0.35rem;
+  }
+  .prose-letterpress [data-footnotes="true"] li::marker {
+    color: var(--color-red);
+    font-family: var(--font-display);
+    font-weight: 900;
+  }
+  .prose-letterpress [data-footnotes="true"] p {
+    margin-block: 0.45em;
+  }
+  .prose-letterpress a[data-footnote-backref] {
+    margin-left: 0.25em;
+    text-decoration: none;
+  }
 
   /* 霞鹜文楷无真粗体：用极细同色描边给衬线正文加一点墨重，解决"太瘦" */
   .ink-bold {

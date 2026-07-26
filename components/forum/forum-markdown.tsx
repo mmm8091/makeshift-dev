@@ -36,12 +36,17 @@ const components: Components = {
   h1: ({ children }) => (
     <h2 className="mt-8 mb-3 font-display text-xl font-black">{children}</h2>
   ),
-  h2: ({ children }) => (
-    <h2 className="mt-8 mb-3 font-display text-xl font-black">
-      <span className="text-red">／ </span>
-      {children}
-    </h2>
-  ),
+  h2: ({ children, id, className, node: _node, ...props }) =>
+    id === "footnote-label" ? (
+      <h2 id={id} className={className} {...props}>
+        {children}
+      </h2>
+    ) : (
+      <h2 className="mt-8 mb-3 font-display text-xl font-black">
+        <span className="text-red">／ </span>
+        {children}
+      </h2>
+    ),
   h3: ({ children }) => (
     <h3 className="mt-6 mb-2 font-display text-lg font-extrabold">{children}</h3>
   ),
@@ -55,16 +60,24 @@ const components: Components = {
       {children}
     </blockquote>
   ),
-  a: ({ href, children }) => (
-    <a
-      href={typeof href === "string" ? safeUrl(href) : undefined}
-      target="_blank"
-      rel="ugc nofollow noreferrer"
-      className="font-semibold text-red underline underline-offset-2"
-    >
-      {children}
-    </a>
-  ),
+  a: ({ href, children, node: _node, className: _className, ...props }) => {
+    const transformedHref =
+      typeof href === "string" ? safeUrl(href) : undefined;
+    const isPageAnchor =
+      typeof transformedHref === "string" && transformedHref.startsWith("#");
+
+    return (
+      <a
+        {...props}
+        href={transformedHref}
+        target={isPageAnchor ? undefined : "_blank"}
+        rel={isPageAnchor ? undefined : "ugc nofollow noreferrer"}
+        className="font-semibold text-red underline underline-offset-2"
+      >
+        {children}
+      </a>
+    );
+  },
   ul: ({ children }) => (
     <ul className="my-3 list-disc space-y-1.5 pl-6">{children}</ul>
   ),
