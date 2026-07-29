@@ -248,6 +248,12 @@ export async function POST(request: Request) {
       serverInfo: { name: "makeshift-dev", version: APP_VERSION },
     });
   }
+  if (rpc.method === "notifications/initialized") {
+    return new Response(null, { status: 202 });
+  }
+  if (rpc.method === "ping") {
+    return jsonRpcResult(rpc, {});
+  }
   if (rpc.method === "tools/list") {
     return jsonRpcResult(rpc, {
       tools: TOOL_DEFINITIONS.map((tool) => ({
